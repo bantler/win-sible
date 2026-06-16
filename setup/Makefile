@@ -7,11 +7,14 @@ WSL_USER ?= bantler
 # Directory that contains this Makefile
 THIS_DIR := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
 
-# WSL path version of this directory
-THIS_DIR_WSL := $(shell wsl -d $(WSL_DISTRO) -- wslpath -a "$(THIS_DIR)")
+# Repo root (automation/)
+REPO_ROOT_WIN := $(CURDIR)/../..
+
+# WSL path version of repo root
+REPO_ROOT_WSL := $(shell wsl -d $(WSL_DISTRO) -- wslpath -a "$(REPO_ROOT_WIN)")
 
 # Default Ansible directory inside the mounted repo in WSL
-WSL_ANSIBLE_DIR ?= $(THIS_DIR_WSL)/wsl/ansible
+WSL_ANSIBLE_DIR ?= $(REPO_ROOT_WSL)/scripts/local environments/wsl/ansible
 
 help:
 	@printf "Usage:\n  make win         Run Windows PowerShell setup\n  make wsl         Run WSL install script (run inside WSL or have bash available)\n  make wsl-ansible Run Ansible playbook (requires Ansible)\n"
@@ -24,7 +27,7 @@ wsl-base:
 	wsl -d $(WSL_DISTRO) -u root -- bash -elc "cd '$(WSL_ANSIBLE_DIR)' && ANSIBLE_CONFIG='$(WSL_ANSIBLE_DIR)/ansible.cfg' ansible-playbook -i inventory/local.ini playbooks/base.yaml -e wsl_default_user=$(WSL_USER)"
 
 wsl-dev:
-	wsl -d $(WSL_DISTRO) -u root -- bash -elc "cd '$(WSL_ANSIBLE_DIR)' && ANSIBLE_CONFIG='$(WSL_ANSIBLE_DIR)/ansible.cfg' ansible-playbook -i inventory/local.ini playbooks/dev.yaml -e wsl_default_user=$(WSL_USER)"
+	wsl -d $(WSL_DISTRO) -u root -- bash -lc "cd '$(WSL_ANSIBLE_DIR)' && ANSIBLE_CONFIG='$(WSL_ANSIBLE_DIR)/ansible.cfg' ansible-playbook -i inventory/local.ini playbooks/dev.yaml"
 
 wsl-cloud:
-	wsl -d $(WSL_DISTRO) -u root -- bash -elc "cd '$(WSL_ANSIBLE_DIR)' && ANSIBLE_CONFIG='$(WSL_ANSIBLE_DIR)/ansible.cfg' ansible-playbook -i inventory/local.ini playbooks/cloud.yaml -e wsl_default_user=$(WSL_USER)"
+	wsl -d $(WSL_DISTRO) -u root -- bash -lc "cd '$(WSL_ANSIBLE_DIR)' && ANSIBLE_CONFIG='$(WSL_ANSIBLE_DIR)/ansible.cfg' ansible-playbook -i inventory/local.ini playbooks/cloud.yaml"

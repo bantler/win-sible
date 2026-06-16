@@ -1,7 +1,3 @@
-- name: Resolve shell target username
-  ansible.builtin.set_fact:
-    username: "{{ username | default(wsl_default_user | default(default_user | default(ansible_user_id)), true) }}"
-
 - name: Install Docker
   apt:
     name: docker.io
@@ -10,7 +6,7 @@
 
 - name: Add user to docker group
   user:
-    name: "{{ username }}"
+    name: "{{ ansible_user_id }}"
     groups: docker
     append: yes
   when: docker_enabled

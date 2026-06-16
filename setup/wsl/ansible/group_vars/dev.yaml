@@ -1,7 +1,7 @@
 dev_packages:
   - python3
-  - python3-pip
   - python3-venv
+  - python3-pip
   - pipx
   - nodejs
   - npm
@@ -11,7 +11,10 @@ dev_packages:
   - cmatrix
   - zoxide
   - direnv
+  - eza
   - jq
-  - openjdk-17-jdk
 
 docker_enabled: true
+
+# tfenv repo
+tfenv_repo: 'https://github.com/tfutils/tfenv.git'

@@ -55,6 +55,9 @@ if (-not (Test-Admin)) {
     exit 0
 }
 
+# Set script directory to the repository root for any relative file operations. This ensures consistent behavior regardless of how the script is launched.
+$scriptDir = Split-Path -Parent $PSCommandPath
+
 Write-Host "Running as Administrator" -ForegroundColor Green
 
 Write-Host "" 
@@ -72,23 +75,15 @@ Write-Host ""
 Write-Host "You will be prompted before each step runs." -ForegroundColor Yellow
 Write-Host ""
 
-# Set the current directory to the repository root when available.
-$scriptDir = Split-Path -Parent $PSCommandPath
-$gitRoot = (& git -C $scriptDir rev-parse --show-toplevel 2>$null)
-if ($LASTEXITCODE -eq 0 -and $gitRoot) {
-    Set-Location -Path $gitRoot
-} else {
-    Set-Location -Path $scriptDir
-}
-
 # Install Windows applications via Winget
 if ((Read-Host "Would you like to install Windows applications via Winget? (Y/N)")  -notin @('n','N')) {
+
     Write-Host "Enabling Winget configure" -ForegroundColor Cyan
     winget configure --Enable
     
     Write-Host "Applying winget configuration" -ForegroundColor Cyan
-    winget configure -f "$(Split-Path -Parent $MyInvocation.MyCommand.Path)\configuration.dev.yaml"
-    
+    winget configure -f "$scriptDir\configuration.dev.yaml"
+
     Write-Host "Upgrading all packages" -ForegroundColor Cyan
     winget upgrade --all --accept-source-agreements --accept-package-agreements
 
@@ -99,6 +94,28 @@ if ((Read-Host "Would you like to install Windows applications via Winget? (Y/N)
     if ($userPath -notlike "*$pathToAdd*") {
         [Environment]::SetEnvironmentVariable("Path", "$userPath;$pathToAdd", "User")
     }
+
+    # Copy dotfiles to user profile
+    $dotfilesSource = Join-Path $scriptDir "../dotfiles\.config"
+    $dotfilesDestination = Join-Path $env:USERPROFILE ".config"
+    if (Test-Path $dotfilesSource) {
+        Write-Host "Copying dotfiles from $dotfilesSource to $dotfilesDestination" -ForegroundColor Cyan
+        Copy-Item -Path $dotfilesSource -Destination $dotfilesDestination -Recurse -Force
+    } else {
+        Write-Host "Dotfiles source not found: $dotfilesSource" -ForegroundColor Yellow
+    }
+
+    # Copy dotfiles to user profile
+    $dotfilesSource = Join-Path $scriptDir "../dotfiles\.pwsh\*"
+    $dotfilesDestination = Join-Path $env:USERPROFILE "OneDrive - SOFTCAT PLC\Documents\PowerShell"
+    if (Test-Path $dotfilesSource) {
+        Write-Host "Copying dotfiles from $dotfilesSource to $dotfilesDestination" -ForegroundColor Cyan
+        Copy-Item -Path $dotfilesSource -Destination $dotfilesDestination -Recurse -Force
+    } else {
+        Write-Host "Dotfiles source not found: $dotfilesSource" -ForegroundColor Yellow
+    }
+    
+    Write-Host "Winget applications installed and configured successfully." -ForegroundColor Green
 }
 
 # Configure Git user name and email based on registry values from Microsoft Office identity information
@@ -138,6 +155,8 @@ if ((Read-Host "Would you like to setup SSH keys and OpenSSH Client/Server capab
         "OpenSSH.Server~~~~0.0.1.0"
     )
     
+    $capabilitiesInstalled = $false
+    
     foreach ($capabilityName in $requiredCapabilities) {
         $capability = Get-WindowsCapability -Online | Where-Object Name -like "$capabilityName"
         
@@ -147,7 +166,14 @@ if ((Read-Host "Would you like to setup SSH keys and OpenSSH Client/Server capab
         else {
             Write-Host "$capabilityName is not enabled. Enabling now..." -ForegroundColor Green
             Add-WindowsCapability -Online -Name $capabilityName
+            $capabilitiesInstalled = $true
         }
+    }
+    
+    if ($capabilitiesInstalled) {
+        Write-Host "New Windows capabilities are pending installation. You must restart your machine to complete the installation. After restarting, relaunch this script to continue." -ForegroundColor Yellow
+        Read-Host "Press Enter to restart your machine now"
+        Restart-Computer -Force
     }
 
     # Start the sshd service
@@ -222,11 +248,6 @@ if ((Read-Host "Would you like to setup SSH keys and OpenSSH Client/Server capab
     Start-Service ssh-agent -ErrorAction SilentlyContinue
     Set-Service ssh-agent -StartupType Automatic
 
-    # # Add keys to agent
-    # Write-Host "Adding keys to SSH agent..." -ForegroundColor Cyan
-    # ssh-add $ed25519Path 2>$null
-    # ssh-add $rsaPath 2>$null
-
     # Create SSH config
     $configPath = Join-Path $KeyPath "config"
 
@@ -260,8 +281,13 @@ if ((Read-Host "Would you like to setup SSH keys and OpenSSH Client/Server capab
     Get-Content "$rsaPath.pub"
 
     Write-Host "SSH environment is now configured..." -ForegroundColor Green
-    Write-Host "Please add the public key(s) to your GitHub account, Azure DevOps (RSA), or other git hosting provider to enable SSH authentication." -ForegroundColor Cyan
+    Write-Host "Please add the public key(s) to your GitHub account, Azure DevOps - RSA, or other git hosting provider to enable SSH authentication." -ForegroundColor Cyan
 }
+
+# Set the current directory to the automation root folder.
+$scriptDir = Split-Path (Split-Path (Split-Path (Split-Path $PSCommandPath -Parent) -Parent) -Parent) -Parent
+Set-Location $scriptDir
+write-Host "Set current directory to repository root: $scriptDir" -ForegroundColor Green
 
 if ((Read-Host "Would you like to install WSL '$WSL_DISTRO'? (Y/N)") -notin @('n','N')) {
 
@@ -294,11 +320,6 @@ if ((Read-Host "Would you like to install WSL '$WSL_DISTRO'? (Y/N)") -notin @('n
     $wslConfigContent = "[wsl2]`nnetworkingMode=mirrored`n[experimental]`nhostAddressLoopback=true`nbestEffortDnsParsing=true`nsparseVhd=true"
     Set-Content -Path $wslConfig -Value $wslConfigContent -Encoding ascii
 
-    # $wslDefaultUser = (Read-Host "Enter a default Linux username for '$WSL_DISTRO' (leave blank to skip)").Trim()
-    # if ($wslDefaultUser -and $wslDefaultUser -notmatch '^[a-z_][a-z0-9_-]*$') {
-    #     throw "Invalid Linux username '$wslDefaultUser'. Use lowercase letters, digits, underscores, or hyphens."
-    # }
-
     # Skip installation if the distro already exists, but keep post-install setup available.
     $installedDistros = wsl --list --quiet
     $distroAlreadyInstalled = @($installedDistros | ForEach-Object { $_.Trim() }) -contains $WSL_DISTRO
@@ -318,69 +339,28 @@ if ((Read-Host "Would you like to install WSL '$WSL_DISTRO'? (Y/N)") -notin @('n
         }
     }
 
-    Write-Host "Installing Ansible on $WSL_DISTRO..." -ForegroundColor Cyan
-    wsl -d $WSL_DISTRO -u root -- bash -lc "apt-get update && apt-get install -y ansible"
-    Write-Host "Ansible installed successfully on $WSL_DISTRO" -ForegroundColor Green
+    Write-Host "Installing Ansible and rsync on $WSL_DISTRO..." -ForegroundColor Cyan
+    wsl -d $WSL_DISTRO -u root -- bash -lc "apt-get update && apt-get install -y ansible rsync"
+    Write-Host "Ansible and rsync installed successfully on $WSL_DISTRO" -ForegroundColor Green
 
     Write-Host "Copying repository files to $WSL_DISTRO..." -ForegroundColor Cyan
-    $srcWsl = wsl -d $WSL_DISTRO -u root -- wslpath -a "$gitRoot"
+    # Convert to forward slashes first so WSL does not drop backslashes from C:\ paths.
+    $scriptDirForWsl = $scriptDir -replace '\\', '/'
+    $srcWsl = wsl -d $WSL_DISTRO -u root -- wslpath -a "$scriptDirForWsl"
     if ($LASTEXITCODE -ne 0 -or -not $srcWsl) {
-        throw "Failed to convert Windows repo path '$gitRoot' to a WSL path."
+        throw "Failed to convert Windows repo path '$scriptDir' to a WSL path."
     }
 
     $srcWsl = $srcWsl.Trim()
     $destRoot = "/root/.automation"
+
     wsl -d $WSL_DISTRO -u root -- bash -lc "mkdir -p '$destRoot' && rsync -av --delete '$srcWsl/' '$destRoot/'"
     if ($LASTEXITCODE -ne 0) {
         throw "Failed to copy repository files into $WSL_DISTRO using rsync."
     }
+
+    Write-Host "Repository files copied successfully to ${WSL_DISTRO}:${destRoot}" -ForegroundColor Green
 }
 
-#     if ($wslDefaultUser) {
-#         Write-Host "Creating Linux user '$wslDefaultUser' in $WSL_DISTRO..." -ForegroundColor Cyan
-#         $createUserCommand = "id -u $wslDefaultUser >/dev/null 2>&1 || useradd -m -s /bin/bash $wslDefaultUser"
-#         wsl -d $WSL_DISTRO -u root -- bash -lc $createUserCommand
-#         if ($LASTEXITCODE -ne 0) {
-#             throw "Failed to create user '$wslDefaultUser' in $WSL_DISTRO."
-#         }
-
-#         wsl -d $WSL_DISTRO -u root -- usermod -aG sudo $wslDefaultUser
-#         if ($LASTEXITCODE -ne 0) {
-#             throw "Failed to add '$wslDefaultUser' to sudo group in $WSL_DISTRO."
-#         }
-
-#         $setDefaultUserCommand = "if [ -f /etc/wsl.conf ] && grep -q '^\[user\]' /etc/wsl.conf; then if grep -q '^default=' /etc/wsl.conf; then sed -i 's/^default=.*/default=$wslDefaultUser/' /etc/wsl.conf; else sed -i '/^\[user\]/a default=$wslDefaultUser' /etc/wsl.conf; fi; else printf '\n[user]\ndefault=$wslDefaultUser\n' >> /etc/wsl.conf; fi"
-#         wsl -d $WSL_DISTRO -u root -- bash -lc $setDefaultUserCommand
-#         if ($LASTEXITCODE -ne 0) {
-#             throw "Failed to set '$wslDefaultUser' as default user in /etc/wsl.conf for $WSL_DISTRO."
-#         }
-
-#         if ((Read-Host "Set a password for '$wslDefaultUser' now? (Y/N)") -notin @('n','N')) {
-#             wsl -d $WSL_DISTRO -u root -- passwd $wslDefaultUser
-#             if ($LASTEXITCODE -ne 0) {
-#                 throw "Failed to set password for '$wslDefaultUser'."
-#             }
-#         }
-
-#         Write-Host "Installing Ansible on $WSL_DISTRO..." -ForegroundColor Cyan
-#         wsl -d $WSL_DISTRO -u root -- bash -lc "apt-get update && apt-get install -y ansible"
-#         Write-Host "Ansible installed successfully on $WSL_DISTRO" -ForegroundColor Green
-
-#         Write-Host "Copying repository files to $WSL_DISTRO..." -ForegroundColor Cyan
-#         $srcWsl = wsl -d $WSL_DISTRO -u root -- wslpath -a "$gitRoot"
-#         if ($LASTEXITCODE -ne 0 -or -not $srcWsl) {
-#             throw "Failed to convert Windows repo path '$gitRoot' to a WSL path."
-#         }
-
-#         $srcWsl = $srcWsl.Trim()
-#         $destRoot = "/home/$wslDefaultUser/.automation"
-#         wsl -d $WSL_DISTRO -u root -- bash -lc "mkdir -p '$destRoot' && rsync -av --delete '$srcWsl/' '$destRoot/' && chown -R '${wslDefaultUser}:${wslDefaultUser}' '$destRoot'"
-#         if ($LASTEXITCODE -ne 0) {
-#             throw "Failed to copy repository files into $WSL_DISTRO using rsync."
-#         }
-
-#         Write-Host "Applying user configuration by restarting $WSL_DISTRO..." -ForegroundColor Cyan
-#         wsl --terminate $WSL_DISTRO
-#         Write-Host "Default Linux user is now '$wslDefaultUser' for $WSL_DISTRO." -ForegroundColor Green
-#     } 
-# }
+Write-Host "Windows Bootstrap process completed! Ensure to restart your computer for all changes to take effect." -ForegroundColor Green
+Pause

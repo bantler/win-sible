@@ -2,15 +2,6 @@
   ansible.builtin.set_fact:
     pkg_mgr: "{{ ansible_pkg_mgr }}"
 
-- name: Remove stale gierens apt source (eza installed from GitHub)
-  ansible.builtin.file:
-    path: "{{ item }}"
-    state: absent
-  loop:
-    - /etc/apt/sources.list.d/gierens.list
-    - /etc/apt/keyrings/gierens.gpg
-  when: pkg_mgr == 'apt'
-
 - name: Update package cache (apt)
   ansible.builtin.apt:
     update_cache: yes
@@ -63,7 +54,7 @@
         - pkg_mgr == 'apk'
         - install_packages | length > 0
 
-# APT-specific repo and key tasks
+  # APT-specific repo and key tasks
 - name: Add Microsoft packages repo (apt)
   block:
     - name: Download Microsoft packages prod deb
@@ -79,26 +70,4 @@
       ansible.builtin.file:
         path: /tmp/packages-microsoft-prod.deb
         state: absent
-
-    - name: Download Microsoft GPG key
-      ansible.builtin.shell: wget -qO- https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > /tmp/microsoft.gpg
-
-    - name: Install Microsoft GPG key
-      ansible.builtin.shell: install -D -o root -g root -m 644 /tmp/microsoft.gpg /usr/share/keyrings/microsoft.gpg
-
-    - name: Remove Microsoft GPG file
-      ansible.builtin.file:
-        path: /tmp/microsoft.gpg
-        state: absent
-
-    - name: Add VS Code repository (apt)
-      ansible.builtin.copy:
-        content: |
-          Types: deb
-          URIs: https://packages.microsoft.com/repos/code
-          Suites: stable
-          Components: main
-          Architectures: amd64,arm64,armhf
-          Signed-By: /usr/share/keyrings/microsoft.gpg
-        dest: /etc/apt/sources.list.d/vscode.sources
   when: pkg_mgr == 'apt'

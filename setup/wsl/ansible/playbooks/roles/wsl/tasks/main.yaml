@@ -27,13 +27,6 @@
           - wsl_default_user is match('^[a-z_][a-z0-9_-]*$')
         fail_msg: "Invalid Linux username '{{ wsl_default_user }}'."
 
-    - name: Check if user exists
-      ansible.builtin.getent:
-        database: passwd
-        key: "{{ wsl_default_user }}"
-      register: user_check
-      failed_when: false
-
     - name: Ensure user exists
       ansible.builtin.user:
         name: "{{ wsl_default_user }}"
@@ -43,7 +36,11 @@
         append: true
         state: present
       register: user_creation_result
-      when: user_check.failed
+
+    - name: Display current user before password change prompt
+      ansible.builtin.debug:
+        msg: "Current user: {{ wsl_default_user }}"
+      when: not user_creation_result.changed
 
     - name: Prompt for password change on existing user
       become: false
@@ -59,7 +56,7 @@
         prompt: "Enter password for {{ wsl_default_user }} (leave blank to skip)"
         echo: false
       register: user_password_input
-      when: user_creation_result.changed
+      when: user_creation_result.changed or (not user_creation_result.changed and password_change_prompt.user_input | lower == 'yes')
 
     - name: Prompt for password confirmation
       become: false
@@ -107,14 +104,6 @@
         group: "{{ wsl_default_user }}"
         mode: "0644"
 
-    - name: Ensure home directory ownership is correct
-      ansible.builtin.file:
-        path: "/home/{{ wsl_default_user }}"
-        owner: "{{ wsl_default_user }}"
-        group: "{{ wsl_default_user }}"
-        mode: "0755"
-        recurse: yes
-
 - name: Configure WSL settings
   copy:
     dest: /etc/wsl.conf
@@ -128,4 +117,4 @@
 
       [interop]
       enabled=true
-      appendWindowsPath=true
+      appendWindowsPath=false

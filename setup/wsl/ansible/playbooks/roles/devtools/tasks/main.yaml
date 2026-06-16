@@ -1,7 +1,3 @@
-- name: Resolve shell target username
-  ansible.builtin.set_fact:
-    username: "{{ username | default(wsl_default_user | default(default_user | default(ansible_user_id)), true) }}"
-
 - name: Install dev packages
   apt:
     name: "{{ dev_packages }}"
@@ -10,15 +6,9 @@
 # Check pipx-installed apps to avoid re-installing
 - name: Check pipx-installed apps
   become_user: "{{ username }}"
-  ansible.builtin.command: pipx list
+  ansible.builtin.command: pipx list --short
   register: pipx_list
   changed_when: false
-
-# Install uv (universal version manager)
-- name: Install uv
-  ansible.builtin.shell: curl -LsSf https://astral.sh/uv/install.sh | sh
-  args:
-    executable: /bin/bash
 
 # Install tldr with pipx
 - name: Install tldr with pipx
@@ -60,51 +50,30 @@
     path: /tmp/eza.tar.gz
     state: absent
 
-# # # Install Terraform
-# # - name: Download Terraform
-# #   get_url:
-# #     url: "https://releases.hashicorp.com/terraform/{{ terraform_version }}/terraform_{{ terraform_version }}_linux_amd64.zip"
-# #     dest: /tmp/terraform.zip
-# #     mode: '0644'
+# # Install Terraform
+# - name: Download Terraform
+#   get_url:
+#     url: "https://releases.hashicorp.com/terraform/{{ terraform_version }}/terraform_{{ terraform_version }}_linux_amd64.zip"
+#     dest: /tmp/terraform.zip
+#     mode: '0644'
 
-# # - name: Unzip Terraform
-# #   unarchive:
-# #     src: /tmp/terraform.zip
-# #     dest: /tmp
-# #     remote_src: yes
+# - name: Unzip Terraform
+#   unarchive:
+#     src: /tmp/terraform.zip
+#     dest: /tmp
+#     remote_src: yes
 
-# # - name: Move Terraform binary to /usr/local/bin
-# #   copy:
-# #     src: /tmp/terraform
-# #     dest: /usr/local/bin/terraform
-# #     mode: '0755'
-# #     remote_src: yes
+# - name: Move Terraform binary to /usr/local/bin
+#   copy:
+#     src: /tmp/terraform
+#     dest: /usr/local/bin/terraform
+#     mode: '0755'
+#     remote_src: yes
 
-# # - name: Cleanup Terraform zip
-# #   file:
-# #     path: /tmp/terraform.zip
-# #     state: absent
-
-# Create .local/bin directory and bat symlink
-- name: Create ~/.local/bin directory
-  file:
-    path: "/home/{{ username }}/.local/bin"
-    state: directory
-    owner: "{{ username }}"
-    group: "{{ username }}"
-
-- name: Create bat symlink
-  file:
-    src: /usr/bin/batcat
-    dest: "/home/{{ username }}/.local/bin/bat"
-    state: link
-    owner: "{{ username }}"
-    group: "{{ username }}"
-
-- name: Add bat alias
-  lineinfile:
-    path: "/home/{{ username }}/.zshrc"
-    line: "alias bat='batcat'"
+# - name: Cleanup Terraform zip
+#   file:
+#     path: /tmp/terraform.zip
+#     state: absent
 
 # Add zoxide init to zsh
 - name: Initialize zoxide in zsh
@@ -127,30 +96,11 @@
     line: 'eval "$(direnv hook zsh)"'
 
 # Install tfenv (Terraform version manager)
-- name: Fix tfenv directory ownership (pre-clone)
-  file:
-    path: "/home/{{ username }}/.tfenv"
-    owner: "{{ username }}"
-    group: "{{ username }}"
-    recurse: yes
-    state: directory
-
-- name: Mark tfenv directory as safe for git
-  ansible.builtin.command: git config --global --add safe.directory /home/{{ username }}/.tfenv
-
 - name: Clone tfenv repository
   git:
     repo: https://github.com/tfutils/tfenv.git
     dest: "/home/{{ username }}/.tfenv"
     version: master
-    force: yes
-
-- name: Fix tfenv directory ownership
-  file:
-    path: "/home/{{ username }}/.tfenv"
-    owner: "{{ username }}"
-    group: "{{ username }}"
-    recurse: yes
 
 - name: Add tfenv to PATH
   lineinfile:
@@ -177,3 +127,4 @@
   lineinfile:
     path: "/home/{{ username }}/.zshrc"
     line: 'eval "$(tfenv init -)"'
+

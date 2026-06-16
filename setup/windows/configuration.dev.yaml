@@ -1,6 +1,5 @@
 # yaml-language-server: $schema=https://aka.ms/configuration-dsc-schema/0.2
 # To use this script download locally and run "winget configure -f <C:/Users/<username>/winget-configs/config-file-name.dsc.yaml>" in powershell.
-
 properties:
   assertions:
     - resource: Microsoft.Windows.Developer/OsVersion
@@ -10,336 +9,292 @@ properties:
       settings:
         MinVersion: '10.0.22000'
   resources:
-    - resource: Microsoft.Windows.Developer/DeveloperMode
-      directives:
-        description: Enable Developer Mode
-        allowPrerelease: true
-      settings:
-        Ensure: Present
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Installing Microsoft.VisualStudioCode
         allowPrerelease: true
-        securityContext: current
+        securityContext: elevated
       settings:
         id: "Microsoft.VisualStudioCode"
         source: winget
+        ensure: Present
       id: Microsoft.VisualStudioCode
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Installing Microsoft.VisualStudio.Enterprise
+        allowPrerelease: true
+        securityContext: elevated
+      settings:
+        id: "Microsoft.VisualStudio.Enterprise"
+        source: winget
+        ensure: Present
+      id: Microsoft.VisualStudio.Enterprise
+
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Installing Microsoft.PowerShell
         allowPrerelease: true
-        securityContext: current
+        securityContext: elevated
       settings:
         id: "Microsoft.PowerShell"
         source: winget
+        ensure: Present
       id: Microsoft.PowerShell
+
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Installing Git.Git
         allowPrerelease: true
-        securityContext: current
+        securityContext: elevated
       settings:
         id: "Git.Git"
         source: winget
+        ensure: Present
       id: Git.Git
+
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
-        description: Installing GnuWin32.Make
+        description: Installing Microsoft.SQLServerManagementStudio
         allowPrerelease: true
-        securityContext: current
-      settings:
-        id: "GnuWin32.Make"
-        source: winget
-      id: GnuWin32.Make
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      directives:
-        description: Installing Microsoft.VisualStudio.Community
-        allowPrerelease: true
-        securityContext: current
-      settings:
-        id: "Microsoft.VisualStudio.Community"
-        source: winget
-      id: Microsoft.VisualStudio.Community
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      directives:
-        description: Installing Microsoft.SQLServerManagementStudio.22
-        allowPrerelease: true
-        securityContext: current
+        securityContext: elevated
       settings:
         id: "Microsoft.SQLServerManagementStudio.22"
         source: winget
+        ensure: Present
       id: Microsoft.SQLServerManagementStudio.22
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      directives:
-        description: Installing Microsoft.PowerToys
-        allowPrerelease: true
-        securityContext: current
-      settings:
-        id: "Microsoft.PowerToys"
-        source: winget
-      id: Microsoft.PowerToys
+
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Installing 7zip.7zip
         allowPrerelease: true
-        securityContext: current
+        securityContext: elevated
       settings:
         id: "7zip.7zip"
         source: winget
+        ensure: Present
       id: 7zip.7zip
+
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Installing PuTTY.PuTTY
         allowPrerelease: true
-        securityContext: current
+        securityContext: elevated
       settings:
         id: "PuTTY.PuTTY"
         source: winget
+        ensure: Present
       id: PuTTY.PuTTY
+
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
-        description: Installing Dolby Access
+        description: Installing Postman.Postman
         allowPrerelease: true
-        securityContext: current
+        securityContext: elevated
       settings:
-        id: "9N0866FS04W8"
-        source: msstore
-      id: 9N0866FS04W8
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      directives:
-        description: Installing Microsoft Teams
-        allowPrerelease: true
-        securityContext: current
-      settings:
-        id: "XP8BT8DW290MPQ"
-        source: msstore
-      id: XP8BT8DW290MPQ
+        id: "Postman.Postman"
+        source: winget
+        ensure: Present
+      id: Postman.Postman
+        
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Installing Microsoft To-Do
         allowPrerelease: true
-        securityContext: current
+        securityContext: elevated
       settings:
         id: "9NBLGGH5R558"
         source: msstore
+        ensure: Present
       id: 9NBLGGH5R558
+
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Installing Microsoft Whiteboard
         allowPrerelease: true
-        securityContext: current
+        securityContext: elevated
       settings:
         id: "9MSPC6MP8FM4"
         source: msstore
+        ensure: Present
       id: 9MSPC6MP8FM4
+
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Installing Microsoft.Azd
         allowPrerelease: true
-        securityContext: current
+        securityContext: elevated
       settings:
         id: "Microsoft.Azd"
         source: winget
+        ensure: Present
       id: Microsoft.Azd
+
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Installing Microsoft.Azure.AZCopy.10
         allowPrerelease: true
-        securityContext: current
+        securityContext: elevated
       settings:
         id: "Microsoft.Azure.AZCopy.10"
         source: winget
+        ensure: Present
       id: Microsoft.Azure.AZCopy.10
+
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Installing ChatGPT
         allowPrerelease: true
-        securityContext: current
+        securityContext: elevated
       settings:
         id: "9NT1R1C2HH7J"
         source: msstore
+        ensure: Present
       id: 9NT1R1C2HH7J
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      directives:
-        description: Installing Zoom Workplace
-        allowPrerelease: true
-        securityContext: current
-      settings:
-        id: "XP99J3KP4XZ4VV"
-        source: msstore
-      id: XP99J3KP4XZ4VV
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      directives:
-        description: Installing WhatsApp
-        allowPrerelease: true
-        securityContext: current
-      settings:
-        id: "9NKSQGP7F2NH"
-        source: msstore
-      id: 9NKSQGP7F2NH
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      directives:
-        description: Installing RazerInc.RazerInstaller.Synapse4
-        allowPrerelease: true
-        securityContext: current
-      settings:
-        id: "RazerInc.RazerInstaller.Synapse4"
-        source: winget
-      id: RazerInc.RazerInstaller.Synapse4
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      directives:
-        description: Installing RaspberryPiFoundation.RaspberryPiImager
-        allowPrerelease: true
-        securityContext: current
-      settings:
-        id: "RaspberryPiFoundation.RaspberryPiImager"
-        source: winget
-      id: RaspberryPiFoundation.RaspberryPiImager
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      directives:
-        description: Installing qBittorrent.qBittorrent
-        allowPrerelease: true
-        securityContext: current
-      settings:
-        id: "qBittorrent.qBittorrent"
-        source: winget
-      id: qBittorrent.qBittorrent
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      directives:
-        description: Installing Prime Video
-        allowPrerelease: true
-        securityContext: current
-      settings:
-        id: "9P6RC76MSMMJ"
-        source: msstore
-      id: 9P6RC76MSMMJ
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      directives:
-        description: Installing Netflix
-        allowPrerelease: true
-        securityContext: current
-      settings:
-        id: "9WZDNCRFJ3TJ"
-        source: msstore
-      id: 9WZDNCRFJ3TJ
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      directives:
-        description: Installing Microsoft.PowerBI
-        allowPrerelease: true
-        securityContext: current
-      settings:
-        id: "Microsoft.PowerBI"
-        source: winget
-      id: Microsoft.PowerBI
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      directives:
-        description: Installing Plex
-        allowPrerelease: true
-        securityContext: current
-      settings:
-        id: "XP9CDQW6ML4NQN"
-        source: msstore
-      id: XP9CDQW6ML4NQN
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      directives:
-        description: Installing ObinsKit.ObinsKit
-        allowPrerelease: true
-        securityContext: current
-      settings:
-        id: "ObinsKit.ObinsKit"
-        source: winget
-      id: ObinsKit.ObinsKit
+
+    # - resource: Microsoft.WinGet.DSC/WinGetPackage
+    #   directives:
+    #     description: Installing Microsoft.PowerBI
+    #     allowPrerelease: true
+    #     securityContext: elevated
+    #   settings:
+    #     id: "Microsoft.PowerBI"
+    #     source: winget
+    #     ensure: Present
+    #   id: Microsoft.PowerBI
+
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Installing Spotify
         allowPrerelease: true
-        securityContext: current
+        securityContext: elevated
       settings:
         id: "9NCBCSZSJRSB"
         source: msstore
+        ensure: Present
       id: 9NCBCSZSJRSB
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      directives:
-        description: Installing Hotspot Sheild VPN
-        allowPrerelease: true
-        securityContext: current
-      settings:
-        id: "9WZDNCRDFNG7"
-        source: msstore
-      id: 9WZDNCRDFNG7
+
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Installing Google.Chrome
         allowPrerelease: true
-        securityContext: current
+        securityContext: elevated
       settings:
         id: "Google.Chrome"
         source: winget
+        ensure: Present
       id: Google.Chrome
+
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
-        description: Installing Valve.Steam
+        description: Installing Microsoft.DotNet.SDK.10
         allowPrerelease: true
-        securityContext: current
+        securityContext: elevated
       settings:
-        id: "Valve.Steam"
+        id: "Microsoft.DotNet.SDK.10"
         source: winget
-      id: Valve.Steam
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      directives:
-        description: Installing Microsoft.DotNet.SDK.9
-        allowPrerelease: true
-        securityContext: current
-      settings:
-        id: "Microsoft.DotNet.SDK.9"
-        source: winget
-      id: Microsoft.DotNet.SDK.9
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      directives:
-        description: Installing chrisant996.Clink
-        allowPrerelease: true
-        securityContext: current
-      settings:
-        id: "chrisant996.Clink"
-        source: winget
-      id: chrisant996.Clink
+        ensure: Present
+      id: Microsoft.DotNet.SDK.10
+
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Installing Fastfetch-cli.Fastfetch
         allowPrerelease: true
-        securityContext: current
+        securityContext: elevated
       settings:
         id: "Fastfetch-cli.Fastfetch"
         source: winget
+        ensure: Present
       id: Fastfetch-cli.Fastfetch
+
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
-        description: Installing Docker.DockerDesktop
+        description: Installing WinDirStat.WinDirStat
         allowPrerelease: true
-        securityContext: current
+        securityContext: elevated
       settings:
-        id: "Docker.DockerDesktop"
+        id: "WinDirStat.WinDirStat"
         source: winget
-      id: Docker.DockerDesktop
+        ensure: Present
+      id: WinDirStat.WinDirStat
+
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
-        description: Installing Obsidian.Obsidian
+        description: Installing Microsoft.WindowsTerminal
         allowPrerelease: true
-        securityContext: current
+        securityContext: elevated
       settings:
-        id: "Obsidian.Obsidian"
+        id: "Microsoft.WindowsTerminal"
         source: winget
-      id: Obsidian.Obsidian
+        ensure: Present
+      id: Microsoft.WindowsTerminal
+
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
-        description: Installing VideoLAN.VLC
+        description: Installing WinSCP.WinSCP
         allowPrerelease: true
-        securityContext: current
+        securityContext: elevated
       settings:
-        id: "VideoLAN.VLC"
+        id: "WinSCP.WinSCP"
         source: winget
-      id: VideoLAN.VLC
+        ensure: Present
+      id: WinSCP.WinSCP
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Installing Microsoft.Azure.StorageExplorer
+        allowPrerelease: true
+        securityContext: elevated
+      settings:
+        id: "Microsoft.Azure.StorageExplorer"
+        source: winget
+        ensure: Present
+      id: Microsoft.Azure.StorageExplorer
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Installing Databricks.DatabricksCLI
+        allowPrerelease: true
+        securityContext: elevated
+      settings:
+        id: "Databricks.DatabricksCLI"
+        source: winget
+        ensure: Present
+      id: Databricks.DatabricksCLI
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Installing Microsoft.AzureCLI
+        allowPrerelease: true
+        securityContext: elevated
+      settings:
+        id: "Microsoft.AzureCLI"
+        source: winget
+        ensure: Present
+      id: Microsoft.AzureCLI
+        
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Installing Starship.Starship
+        allowPrerelease: true
+        securityContext: elevated
+      settings:
+        id: "Starship.Starship"
+        source: winget
+        ensure: Present
+      id: Starship.Starship
+    
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Installing Make
+        allowPrerelease: true
+        securityContext: elevated
+      settings:
+        id: "GnuWin32.Make"
+        source: winget
+        ensure: Present
+      id: GnuWin32.Make
+
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Installing Microsoft WSL
@@ -349,14 +304,5 @@ properties:
         id: "Microsoft.WSL"
         source: winget
       id: Microsoft.WSL
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      directives:
-        description: Installing Microsoft.WindowsTerminal
-        allowPrerelease: true
-        securityContext: current
-      settings:
-        id: "Microsoft.WindowsTerminal"
-        source: winget
-      id: Microsoft.WindowsTerminal
   configurationVersion: 0.2.0
 

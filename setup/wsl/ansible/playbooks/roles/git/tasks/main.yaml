@@ -1,23 +1,67 @@
-- name: Resolve git target username
+- name: Get current global git username
+  ansible.builtin.command: git config --global --get user.name
+  register: current_git_user_name
+  changed_when: false
+  failed_when: false
+
+- name: Get current global git email
+  ansible.builtin.command: git config --global --get user.email
+  register: current_git_user_email
+  changed_when: false
+  failed_when: false
+
+- name: Normalize current git config values
   ansible.builtin.set_fact:
-    username: "{{ username | default(wsl_default_user | default(default_user | default(ansible_user_id)), true) }}"
+    current_git_name: "{{ current_git_user_name.stdout | default('') | trim }}"
+    current_git_email: "{{ current_git_user_email.stdout | default('') | trim }}"
+
+- name: Display current global git config
+  ansible.builtin.debug:
+    msg:
+      - "Current git user.name: {{ current_git_name if (current_git_name | length > 0) else '(not set)' }}"
+      - "Current git user.email: {{ current_git_email if (current_git_email | length > 0) else '(not set)' }}"
+
+- name: Prompt whether to update existing git config
+  ansible.builtin.pause:
+    prompt: "Git config already exists. Do you want to update it? (yes/no)"
+  register: update_git_config_prompt
+  when: (current_git_name | length > 0) or (current_git_email | length > 0)
+
+- name: Resolve whether git config should be updated
+  ansible.builtin.set_fact:
+    should_update_git_config: >-
+      {{
+        (current_git_name | length == 0)
+        or (current_git_email | length == 0)
+        or ((update_git_config_prompt.user_input | default('no') | trim | lower) == 'yes')
+      }}
 
 - name: Prompt for git username
-  pause:
+  ansible.builtin.pause:
     prompt: "Enter git username"
   register: git_user_name_prompt
+  when: should_update_git_config
 
 - name: Prompt for git email
-  pause:
+  ansible.builtin.pause:
     prompt: "Enter git email"
   register: git_user_email_prompt
+  when: should_update_git_config
 
 - name: Set git username
-  command: git config --global user.name "{{ git_user_name_prompt.user_input }}"
-  become_user: "{{ username }}"
-  when: git_user_name_prompt.user_input | length > 0
+  git_config:
+    name: user.name
+    value: "{{ git_user_name_prompt.user_input }}"
+    scope: global
+  when:
+    - should_update_git_config
+    - (git_user_name_prompt.user_input | default('') | trim | length) > 0
 
 - name: Set git email
-  command: git config --global user.email "{{ git_user_email_prompt.user_input }}"
-  become_user: "{{ username }}"
-  when: git_user_email_prompt.user_input | length > 0
+  git_config:
+    name: user.email
+    value: "{{ git_user_email_prompt.user_input }}"
+    scope: global
+  when:
+    - should_update_git_config
+    - (git_user_email_prompt.user_input | default('') | trim | length) > 0
