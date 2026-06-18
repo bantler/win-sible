@@ -1,15 +1,20 @@
-.PHONY: all bootstrap wsl-dev wsl-base wsl-cloud help
+.PHONY: all help bootstrap wsl-dev wsl-base wsl-cloud sync-to-wsl
 
 # Linux Distro to be install in WSL
-WSL_DISTRO ?= Ubuntu-22.04
+WSL_DISTRO ?= Ubuntu-24.04
 WSL_USER ?= bantler
 WINDOWS_USER ?= $(USERNAME)
 
 # Default Ansible directory inside the mounted repo in WSL
-WSL_ANSIBLE_DIR ?= ~/.automation/win-sible/setup/wsl/ansible
+WSL_ANSIBLE_DIR ?= /root/.automation/wsl/ansible
 
 help:
-	@printf "Usage:\n  make win         Run Windows PowerShell setup\n  make wsl         Run WSL install script (run inside WSL or have bash available)\n  make wsl-ansible Run Ansible playbook (requires Ansible)\n"
+	@echo Usage:
+	@echo   make bootstrap  Runs baseline installations for dev tools and applications in Windows
+	@echo   make wsl-base   Runs baseline installations in WSL using Ansible playbook
+	@echo   make wsl-dev    Runs development environment setup in WSL using Ansible playbook
+	@echo   make wsl-cloud  Runs cloud environment setup in WSL using Ansible playbook
+	@echo   make sync-to-wsl Rsync this repo from Windows to WSL path
 
 bootstrap:
 	@echo "Running Windows Bootstrap setup..."
@@ -23,3 +28,7 @@ wsl-dev:
 
 wsl-cloud:
 	wsl -d $(WSL_DISTRO) -u root -- bash -lc "cd '$(WSL_ANSIBLE_DIR)' && ANSIBLE_CONFIG='$(WSL_ANSIBLE_DIR)/ansible.cfg' ansible-playbook -i inventory/local.ini playbooks/cloud.yaml -e windows_user=$(WINDOWS_USER)"
+
+wsl-rsync:
+	wsl -d $(WSL_DISTRO) -u root -- bash -lc "mkdir -p '$destRoot' && rsync -av --delete '$srcWsl/' '$destRoot/'"
+	

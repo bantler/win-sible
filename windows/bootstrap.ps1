@@ -285,7 +285,7 @@ if ((Read-Host "Would you like to setup SSH keys and OpenSSH Client/Server capab
 }
 
 # Set the current directory to the automation root folder.
-$scriptDir = Split-Path (Split-Path (Split-Path (Split-Path $PSCommandPath -Parent) -Parent) -Parent) -Parent
+$scriptDir = Split-Path (Split-Path  $PSCommandPath -Parent) -Parent
 Set-Location $scriptDir
 write-Host "Set current directory to repository root: $scriptDir" -ForegroundColor Green
 
