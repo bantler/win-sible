@@ -107,7 +107,7 @@ if ((Read-Host "Would you like to install Windows applications via Winget? (Y/N)
 
     # Copy dotfiles to user profile
     $dotfilesSource = Join-Path $scriptDir "../dotfiles\.pwsh\*"
-    $dotfilesDestination = Join-Path $env:USERPROFILE "OneDrive - SOFTCAT PLC\Documents\PowerShell"
+    $dotfilesDestination = Join-Path $env:USERPROFILE "Documents\PowerShell"
     if (Test-Path $dotfilesSource) {
         Write-Host "Copying dotfiles from $dotfilesSource to $dotfilesDestination" -ForegroundColor Cyan
         Copy-Item -Path $dotfilesSource -Destination $dotfilesDestination -Recurse -Force
