@@ -6,7 +6,7 @@ WSL_USER ?= bantler
 WINDOWS_USER ?= $(USERNAME)
 
 # Default Ansible directory inside the mounted repo in WSL
-WSL_ANSIBLE_DIR ?= /root/.automation/win-sible/setup/wsl/ansible
+WSL_ANSIBLE_DIR ?= ~/.automation/win-sible/setup/wsl/ansible
 
 help:
 	@printf "Usage:\n  make win         Run Windows PowerShell setup\n  make wsl         Run WSL install script (run inside WSL or have bash available)\n  make wsl-ansible Run Ansible playbook (requires Ansible)\n"
