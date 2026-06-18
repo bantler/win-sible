@@ -16,19 +16,12 @@
           else '.bashrc'
       }}
 
-- name: Detect Windows username from host environment
-  ansible.builtin.shell: "/mnt/c/Windows/System32/cmd.exe /c echo %USERNAME%"
-  register: windows_username_cmd
-  changed_when: false
-  failed_when: false
-
 - name: Resolve Windows username for mounted profile path
   ansible.builtin.set_fact:
     windows_user: >-
       {{
         windows_user
           | default(lookup('env', 'USERNAME'), true)
-          | default(windows_username_cmd.stdout | trim, true)
           | default((playbook_dir.split('/')[4] if (playbook_dir is defined and playbook_dir.startswith('/mnt/c/Users/')) else ''), true)
           | default((ansible_env.PWD.split('/')[4] if (ansible_env.PWD is defined and ansible_env.PWD.startswith('/mnt/c/Users/')) else ''), true)
           | default((ansible_env.SUDO_USER if (ansible_env.SUDO_USER is defined and ansible_env.SUDO_USER != 'root') else ''), true)
