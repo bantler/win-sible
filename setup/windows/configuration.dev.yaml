@@ -272,6 +272,39 @@ properties:
         source: winget
         ensure: Present
       id: Microsoft.AzureCLI
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Installing GitHub.Copilot
+        allowPrerelease: true
+        securityContext: elevated
+      settings:
+        id: "GitHub.Copilot"
+        source: winget
+        ensure: Present
+      id: GitHub.Copilot
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Installing GitHub.cli
+        allowPrerelease: true
+        securityContext: elevated
+      settings:
+        id: "GitHub.cli"
+        source: winget
+        ensure: Present
+      id: GitHub.cli
+
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Installing GitHub.CopilotApp
+        allowPrerelease: true
+        securityContext: elevated
+      settings:
+        id: "GitHub.CopilotApp"
+        source: winget
+        ensure: Present
+      id: GitHub.CopilotApp
         
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
