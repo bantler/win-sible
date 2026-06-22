@@ -151,8 +151,8 @@
     block: |
       SSH_ENV="$HOME/.ssh/environment"
 
-      # Kill any existing ssh-agent processes
-      trap 'ssh-add -D >/dev/null 2>&1' EXIT
+      # Kill any existing agent tied to this session
+      pkill ssh-agent >/dev/null 2>&1
 
       # start the ssh-agent
       function start_agent {
