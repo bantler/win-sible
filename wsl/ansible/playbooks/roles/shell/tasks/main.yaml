@@ -79,12 +79,12 @@
   pause:
     prompt: "Do you want to install Starship and apply configuration? (yes/no?)"
   register: install_starship_prompt
-  when: not starship_installed.stat.exists
+  when: not (starship_installed.stat.exists and install_zsh_prompt.user_input | lower != 'yes')
 
 - name: Resolve whether Starship should be installed
   ansible.builtin.set_fact:
     install_starship_requested: "{{ (install_starship_prompt.user_input | default('no') | trim | lower) == 'yes' }}"
-  when: not starship_installed.stat.exists
+  when: not (starship_installed.stat.exists and install_zsh_prompt.user_input | lower != 'yes')
 
 # Install Starship (cross-shell prompt)
 - name: Install Starship (cross-shell prompt)

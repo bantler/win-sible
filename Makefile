@@ -1,7 +1,7 @@
 .PHONY: all help bootstrap wsl-dev wsl-base wsl-cloud wsl-rsync
 
 # Linux Distro to be install in WSL
-WSL_DISTRO ?= Ubuntu-24.04
+WSL_DISTRO ?= Ubuntu-22.04
 WSL_USER ?= bantler
 WINDOWS_USER ?= $(USERNAME)
 
