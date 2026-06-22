@@ -1,7 +1,7 @@
-.PHONY: all help bootstrap wsl-dev wsl-base wsl-cloud sync-to-wsl
+.PHONY: all help bootstrap wsl-dev wsl-base wsl-cloud wsl-rsync
 
 # Linux Distro to be install in WSL
-WSL_DISTRO ?= Ubuntu-24.04
+WSL_DISTRO ?= Ubuntu-22.04
 WSL_USER ?= bantler
 WINDOWS_USER ?= $(USERNAME)
 
@@ -9,7 +9,7 @@ WINDOWS_USER ?= $(USERNAME)
 GIT_REPO_ROOT := $(shell git rev-parse --show-toplevel)
 
 # Root win-sible directory inside WSL
-WSL_SIBLE_DIR ?= /root/.automation/win-sible/
+WSL_SIBLE_DIR ?= /root/.automation
 
 help:
 	@echo Usage:

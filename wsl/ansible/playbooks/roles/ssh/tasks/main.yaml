@@ -149,7 +149,10 @@
     mode: "0644"
     marker: "# {mark} ANSIBLE MANAGED SSH AGENT BOOTSTRAP"
     block: |
-      SSH_ENV=$HOME/.ssh/environment
+      SSH_ENV="$HOME/.ssh/environment"
+
+      # Kill any existing ssh-agent processes
+      trap 'ssh-add -D >/dev/null 2>&1' EXIT
 
       # start the ssh-agent
       function start_agent {

@@ -1,4 +1,5 @@
 # ~/.config/starship.toml
+scan_timeout = 100
 
 # Get editor completions based on the config schema
 "$schema" = 'https://starship.rs/config-schema.json'
