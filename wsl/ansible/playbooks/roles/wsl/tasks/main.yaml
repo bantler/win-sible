@@ -47,6 +47,7 @@
         prompt: "User already exists. Change password? (Yes/No)"
         echo: true
       register: password_change_prompt
+      when: not user_creation_result.changed
 
     - name: Prompt for user password
       become: false
@@ -54,7 +55,7 @@
         prompt: "Enter password for {{ wsl_default_user }} (leave blank to skip)"
         echo: false
       register: user_password_input
-      when: password_change_prompt.user_input | lower == 'yes'
+      when: user_creation_result.changed or (not user_creation_result.changed and password_change_prompt.user_input | lower == 'yes')
 
     - name: Prompt for password confirmation
       become: false
@@ -62,20 +63,20 @@
         prompt: "Confirm password for {{ wsl_default_user }}"
         echo: false
       register: user_password_confirm
-      when: (password_change_prompt.user_input | lower == 'yes') and user_password_input.user_input | length > 0
+      when: (user_creation_result.changed or (not user_creation_result.changed and password_change_prompt.user_input | lower == 'yes')) and user_password_input.user_input | length > 0
 
     - name: Validate passwords match
       ansible.builtin.assert:
         that:
           - user_password_input.user_input == user_password_confirm.user_input
         fail_msg: "Passwords do not match. Please try again."
-      when: (password_change_prompt.user_input | lower == 'yes') and user_password_input.user_input | length > 0
+      when: (user_creation_result.changed or (not user_creation_result.changed and password_change_prompt.user_input | lower == 'yes')) and user_password_input.user_input | length > 0
 
     - name: Set user password (hashed)
       ansible.builtin.user:
         name: "{{ wsl_default_user }}"
         password: "{{ user_password_input.user_input | password_hash('sha512') }}"
-      when: (password_change_prompt.user_input | lower == 'yes') and user_password_input.user_input | length > 0
+      when: (user_creation_result.changed or (not user_creation_result.changed and password_change_prompt.user_input | lower == 'yes')) and user_password_input.user_input | length > 0
 
     - name: Ensure /etc/wsl.conf has [user] default
       ansible.builtin.ini_file:
