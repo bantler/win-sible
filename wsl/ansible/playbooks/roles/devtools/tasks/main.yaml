@@ -36,15 +36,6 @@
     mode: '0755'
     remote_src: yes
 
-# Add eza aliases
-- name: Add eza aliases
-  lineinfile:
-    path: "/home/{{ username }}/.zshrc"
-    line: "{{ item }}"
-  loop:
-    - "alias ls='eza --icons --group-directories-first'"
-    - "alias ll='eza -lah --icons --group-directories-first'"
-
 - name: Cleanup eza archive
   file:
     path: /tmp/eza.tar.gz
@@ -127,4 +118,38 @@
   lineinfile:
     path: "/home/{{ username }}/.zshrc"
     line: 'eval "$(tfenv init -)"'
+
+- name: Detect current default shell for aliases module
+  ansible.builtin.shell: |
+    getent passwd {{ username }} | cut -d: -f7
+  register: current_default_shell
+  changed_when: false
+
+- name: Resolve aliases module target from default shell
+  ansible.builtin.set_fact:
+    aliases_shell_name: "{{ 'zsh' if '/zsh' in current_default_shell.stdout else 'bash' }}"
+    aliases_shell_dir: "{{ '.zsh' if '/zsh' in current_default_shell.stdout else '.bash' }}"
+
+- name: Ensure aliases module directory exists for current shell
+  ansible.builtin.file:
+    path: "/home/{{ username }}/{{ aliases_shell_dir }}"
+    state: directory
+    owner: "{{ username }}"
+    group: "{{ username }}"
+    mode: "0755"
+
+- name: Generate aliases module for current shell
+  ansible.builtin.copy:
+    dest: "/home/{{ username }}/{{ aliases_shell_dir }}/aliases.{{ aliases_shell_name }}"
+    owner: "{{ username }}"
+    group: "{{ username }}"
+    mode: "0644"
+    content: |
+      # Alias
+
+      alias py=/usr/bin/python3
+      alias tf='terraform'
+
+      alias ls="eza --icons --group-directories-first --all"
+      alias ll="eza --icons --group-directories-first -l --all"
 

@@ -344,6 +344,7 @@ if ((Read-Host "Would you like to install WSL '$WSL_DISTRO'? (Y/N)") -notin @('n
     Write-Host "Ansible and rsync installed successfully on $WSL_DISTRO" -ForegroundColor Green
 
     Write-Host "Copying repository files to $WSL_DISTRO..." -ForegroundColor Cyan
+    
     # Convert to forward slashes first so WSL does not drop backslashes from C:\ paths.
     $scriptDirForWsl = $scriptDir -replace '\\', '/'
     $srcWsl = wsl -d $WSL_DISTRO -u root -- wslpath -a "$scriptDirForWsl"

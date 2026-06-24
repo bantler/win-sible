@@ -27,6 +27,12 @@
           - wsl_default_user is match('^[a-z_][a-z0-9_-]*$')
         fail_msg: "Invalid Linux username '{{ wsl_default_user }}'."
 
+    - name: Check whether target user already exists
+      ansible.builtin.command: "getent passwd {{ wsl_default_user }}"
+      register: existing_user_check
+      changed_when: false
+      failed_when: false
+
     - name: Ensure user exists
       ansible.builtin.user:
         name: "{{ wsl_default_user }}"
@@ -47,7 +53,7 @@
         prompt: "User already exists. Change password? (Yes/No)"
         echo: true
       register: password_change_prompt
-      when: not user_creation_result.changed
+      when: existing_user_check.rc == 0
 
     - name: Prompt for user password
       become: false
@@ -55,7 +61,7 @@
         prompt: "Enter password for {{ wsl_default_user }} (leave blank to skip)"
         echo: false
       register: user_password_input
-      when: user_creation_result.changed or (not user_creation_result.changed and password_change_prompt.user_input | lower == 'yes')
+      when: existing_user_check.rc != 0 or (existing_user_check.rc == 0 and (password_change_prompt.user_input | default('no') | lower) == 'yes')
 
     - name: Prompt for password confirmation
       become: false
@@ -63,20 +69,20 @@
         prompt: "Confirm password for {{ wsl_default_user }}"
         echo: false
       register: user_password_confirm
-      when: (user_creation_result.changed or (not user_creation_result.changed and password_change_prompt.user_input | lower == 'yes')) and user_password_input.user_input | length > 0
+      when: (existing_user_check.rc != 0 or (existing_user_check.rc == 0 and (password_change_prompt.user_input | default('no') | lower) == 'yes')) and user_password_input.user_input | length > 0
 
     - name: Validate passwords match
       ansible.builtin.assert:
         that:
           - user_password_input.user_input == user_password_confirm.user_input
         fail_msg: "Passwords do not match. Please try again."
-      when: (user_creation_result.changed or (not user_creation_result.changed and password_change_prompt.user_input | lower == 'yes')) and user_password_input.user_input | length > 0
+      when: (existing_user_check.rc != 0 or (existing_user_check.rc == 0 and (password_change_prompt.user_input | default('no') | lower) == 'yes')) and user_password_input.user_input | length > 0
 
     - name: Set user password (hashed)
       ansible.builtin.user:
         name: "{{ wsl_default_user }}"
         password: "{{ user_password_input.user_input | password_hash('sha512') }}"
-      when: (user_creation_result.changed or (not user_creation_result.changed and password_change_prompt.user_input | lower == 'yes')) and user_password_input.user_input | length > 0
+      when: (existing_user_check.rc != 0 or (existing_user_check.rc == 0 and (password_change_prompt.user_input | default('no') | lower) == 'yes')) and user_password_input.user_input | length > 0
 
     - name: Ensure /etc/wsl.conf has [user] default
       ansible.builtin.ini_file:
