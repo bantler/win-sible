@@ -151,6 +151,13 @@
       [ -f ~/{{ effective_shell_dir }}/starship.{{ effective_shell_name }} ] && . ~/{{ effective_shell_dir }}/starship.{{ effective_shell_name }}
       [ -f ~/{{ effective_shell_dir }}/wsl2fix.{{ effective_shell_name }} ] && . ~/{{ effective_shell_dir }}/wsl2fix.{{ effective_shell_name }}
 
+- name: Ensure blank line before SHELL MODULES marker in shell rc file
+  ansible.builtin.lineinfile:
+    path: "/home/{{ username }}/{{ effective_shell_rc }}"
+    regexp: "^(?!\\n)(# BEGIN ANSIBLE MANAGED SHELL MODULES)$"
+    line: "\n\\1"
+    backrefs: true
+
 - name: Install zsh autosuggestions plugin
   git:
     repo: https://github.com/zsh-users/zsh-autosuggestions

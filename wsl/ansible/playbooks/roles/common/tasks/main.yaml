@@ -2,17 +2,6 @@
   ansible.builtin.set_fact:
     pkg_mgr: "{{ ansible_pkg_mgr }}"
 
-- name: Update package cache (apt)
-  ansible.builtin.apt:
-    update_cache: yes
-    cache_valid_time: 3600
-  when: pkg_mgr == 'apt'
-
-- name: Update package cache (pacman)
-  ansible.builtin.pacman:
-    update_cache: yes
-  when: pkg_mgr == 'pacman'
-
 - name: Install packages for detected package manager
   block:
     - name: Set install_packages
@@ -71,3 +60,34 @@
         path: /tmp/packages-microsoft-prod.deb
         state: absent
   when: pkg_mgr == 'apt'
+
+- name: Update package cache (apt)
+  ansible.builtin.apt:
+    update_cache: yes
+    cache_valid_time: 3600
+  when: pkg_mgr == 'apt'
+
+- name: Upgrade installed packages (apt)
+  ansible.builtin.apt:
+    upgrade: yes
+  when: pkg_mgr == 'apt'
+
+- name: Update package cache (pacman)
+  ansible.builtin.pacman:
+    update_cache: yes
+  when: pkg_mgr == 'pacman'
+
+- name: Upgrade installed packages (pacman)
+  ansible.builtin.pacman:
+    upgrade: yes
+  when: pkg_mgr == 'pacman'
+
+- name: Update package cache (apk)
+  ansible.builtin.apk:
+    update_cache: yes
+  when: pkg_mgr == 'apk'
+
+- name: Upgrade installed packages (apk)
+  ansible.builtin.apk:
+    upgrade: yes
+  when: pkg_mgr == 'apk'

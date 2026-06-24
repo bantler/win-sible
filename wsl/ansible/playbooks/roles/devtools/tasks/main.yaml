@@ -1,12 +1,29 @@
+- name: Resolve shell target username
+  ansible.builtin.set_fact:
+    username: "{{ username | default(wsl_default_user | default(default_user | default(ansible_user_id)), true) }}"
+    
 - name: Install dev packages
   apt:
     name: "{{ dev_packages }}"
     state: present
 
+# Detect current default shell for aliases module
+- name: Detect current default shell for aliases module
+  ansible.builtin.shell: |
+    getent passwd {{ username }} | cut -d: -f7
+  register: current_default_shell
+  changed_when: false
+
+- name: Resolve aliases module target from default shell
+  ansible.builtin.set_fact:
+    aliases_shell_name: "{{ 'zsh' if '/zsh' in current_default_shell.stdout else 'bash' }}"
+    aliases_shell_dir: "{{ '.zsh' if '/zsh' in current_default_shell.stdout else '.bash' }}"
+    aliases_shell_rc: "{{ '.zshrc' if '/zsh' in current_default_shell.stdout else '.bashrc' }}"
+
 # Check pipx-installed apps to avoid re-installing
 - name: Check pipx-installed apps
   become_user: "{{ username }}"
-  ansible.builtin.command: pipx list --short
+  ansible.builtin.command: pipx list
   register: pipx_list
   changed_when: false
 
@@ -14,7 +31,7 @@
 - name: Install tldr with pipx
   become_user: "{{ username }}"
   ansible.builtin.command: pipx install tldr
-  when: "'tldr' not in pipx_list.stdout"
+  when: pipx_list.stdout is not search('(?m)^\s*package\s+tldr\s')
 
 # Install eza (ls replacement)
 - name: Download latest eza release (amd64)
@@ -66,37 +83,88 @@
 #     path: /tmp/terraform.zip
 #     state: absent
 
-# Add zoxide init to zsh
-- name: Initialize zoxide in zsh
-  lineinfile:
-    path: "/home/{{ username }}/.zshrc"
-    line: 'eval "$(zoxide init zsh)"'
+# Add zoxide init to default shell (bash or zsh)
+- name: Initialize zoxide in default shell
+  blockinfile:
+    path: "/home/{{ username }}/{{ aliases_shell_rc }}"
+    marker: "# {mark} ANSIBLE MANAGED ZOXIDE INIT"
+    block: |
+      eval "$(zoxide init {{ aliases_shell_name }})"
 
-# Add alias for zoxide
-- name: Add zoxide aliases
-  lineinfile:
-    path: "/home/{{ username }}/.zshrc"
-    line: "{{ item }}"
-  loop:
-    - "alias cd='z'"
+- name: Ensure blank line before ZOXIDE marker in shell rc file
+  ansible.builtin.lineinfile:
+    path: "/home/{{ username }}/{{ aliases_shell_rc }}"
+    regexp: "^(?!\\n)(# BEGIN ANSIBLE MANAGED ZOXIDE INIT)$"
+    line: "\n\\1"
+    backrefs: true
 
-# Add direnv init to zsh
-- name: Enable direnv in zsh
-  lineinfile:
-    path: "/home/{{ username }}/.zshrc"
-    line: 'eval "$(direnv hook zsh)"'
+# Add direnv init to default shell (bash or zsh)
+- name: Initialize direnv in default shell
+  blockinfile:
+    path: "/home/{{ username }}/{{ aliases_shell_rc }}"
+    marker: "# {mark} ANSIBLE MANAGED DIRENV INIT"
+    block: |
+      eval "$(direnv hook {{ aliases_shell_name }})"
+
+- name: Ensure blank line before DIRENV marker in shell rc file
+  ansible.builtin.lineinfile:
+    path: "/home/{{ username }}/{{ aliases_shell_rc }}"
+    regexp: "^(?!\\n)(# BEGIN ANSIBLE MANAGED DIRENV INIT)$"
+    line: "\n\\1"
+    backrefs: true
 
 # Install tfenv (Terraform version manager)
+- name: Ensure tfenv directory is owned by target user before clone/update
+  ansible.builtin.file:
+    path: "/home/{{ username }}/.tfenv"
+    state: directory
+    owner: "{{ username }}"
+    group: "{{ username }}"
+    recurse: true
+
 - name: Clone tfenv repository
-  git:
+  become_user: "{{ username }}"
+  ansible.builtin.git:
     repo: https://github.com/tfutils/tfenv.git
     dest: "/home/{{ username }}/.tfenv"
     version: master
 
-- name: Add tfenv to PATH
-  lineinfile:
-    path: "/home/{{ username }}/.zshrc"
-    line: 'export PATH="$HOME/.tfenv/bin:$PATH"'
+- name: Ensure tfenv directory is owned by target user
+  ansible.builtin.file:
+    path: "/home/{{ username }}/.tfenv"
+    state: directory
+    owner: "{{ username }}"
+    group: "{{ username }}"
+    recurse: true
+
+- name: Export tfenv in PATH for current shell
+  blockinfile:
+    path: "/home/{{ username }}/{{ aliases_shell_rc }}"
+    marker: "# {mark} ANSIBLE MANAGED TFENV PATH"
+    block: |
+      export PATH="$HOME/.tfenv/bin:$PATH"
+
+- name: Ensure blank line before TFENV PATH marker in shell rc file
+  ansible.builtin.lineinfile:
+    path: "/home/{{ username }}/{{ aliases_shell_rc }}"
+    regexp: "^(?!\\n)(# BEGIN ANSIBLE MANAGED TFENV PATH)$"
+    line: "\n\\1"
+    backrefs: true
+
+# Add tfenv init to current shell rc file
+- name: Enable tfenv in current shell
+  blockinfile:
+    path: "/home/{{ username }}/{{ aliases_shell_rc }}"
+    marker: "# {mark} ANSIBLE MANAGED TFENV INIT"
+    block: |
+      eval "$(tfenv init -)"
+
+- name: Ensure blank line before TFENV INIT marker in shell rc file
+  ansible.builtin.lineinfile:
+    path: "/home/{{ username }}/{{ aliases_shell_rc }}"
+    regexp: "^(?!\\n)(# BEGIN ANSIBLE MANAGED TFENV INIT)$"
+    line: "\n\\1"
+    backrefs: true
 
 # Install terraform versions with tfenv
 - name: Install pinned Terraform version
@@ -108,27 +176,19 @@
   when: terraform_version is defined
 
 # Add Terraform autocomplete
-- name: Enable terraform autocomplete (zsh)
-  lineinfile:
-    path: "/home/{{ username }}/.zshrc"
-    line: 'complete -C /usr/local/bin/terraform terraform'
+- name: Add terraform autocomplete to current shell
+  blockinfile:
+    path: "/home/{{ username }}/{{ aliases_shell_rc }}"
+    marker: "# {mark} ANSIBLE MANAGED TERRAFORM AUTOCOMPLETE"
+    block: |
+      complete -C /usr/local/bin/terraform terraform
 
-# Add tfenv init to zsh
-- name: Enable tfenv in shell
-  lineinfile:
-    path: "/home/{{ username }}/.zshrc"
-    line: 'eval "$(tfenv init -)"'
-
-- name: Detect current default shell for aliases module
-  ansible.builtin.shell: |
-    getent passwd {{ username }} | cut -d: -f7
-  register: current_default_shell
-  changed_when: false
-
-- name: Resolve aliases module target from default shell
-  ansible.builtin.set_fact:
-    aliases_shell_name: "{{ 'zsh' if '/zsh' in current_default_shell.stdout else 'bash' }}"
-    aliases_shell_dir: "{{ '.zsh' if '/zsh' in current_default_shell.stdout else '.bash' }}"
+- name: Ensure blank line before TERRAFORM AUTOCOMPLETE marker in shell rc file
+  ansible.builtin.lineinfile:
+    path: "/home/{{ username }}/{{ aliases_shell_rc }}"
+    regexp: "^(?!\\n)(# BEGIN ANSIBLE MANAGED TERRAFORM AUTOCOMPLETE)$"
+    line: "\n\\1"
+    backrefs: true
 
 - name: Ensure aliases module directory exists for current shell
   ansible.builtin.file:
@@ -147,6 +207,7 @@
     content: |
       # Alias
 
+      alias cd="z"
       alias py=/usr/bin/python3
       alias tf='terraform'
 

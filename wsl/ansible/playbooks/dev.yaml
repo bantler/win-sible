@@ -1,7 +1,11 @@
-- import_playbook: base.yml
+- import_playbook: base.yaml
 
 - hosts: local
+  connection: local
   become: true
+  
+  vars_files:
+    - ../group_vars/dev.yaml
 
   roles:
     - devtools

@@ -27,10 +27,10 @@ wsl-base:
 	wsl -d $(WSL_DISTRO) -u root -- bash -elc "cd '$(WSL_SIBLE_DIR)/wsl/ansible/' && ANSIBLE_CONFIG='$(WSL_SIBLE_DIR)/wsl/ansible/ansible.cfg' ansible-playbook -i inventory/local.ini playbooks/base.yaml -e wsl_default_user=$(WSL_USER) -e windows_user=$(WINDOWS_USER)"
 
 wsl-dev:
-	wsl -d $(WSL_DISTRO) -u root -- bash -lc "cd '$(WSL_SIBLE_DIR)/wsl/ansible/' && ANSIBLE_CONFIG='$(WSL_SIBLE_DIR)/wsl/ansible/ansible.cfg' ansible-playbook -i inventory/local.ini playbooks/dev.yaml"
+	wsl -d $(WSL_DISTRO) -u root -- bash -lc "cd '$(WSL_SIBLE_DIR)/wsl/ansible/' && ANSIBLE_CONFIG='$(WSL_SIBLE_DIR)/wsl/ansible/ansible.cfg' ansible-playbook -i inventory/local.ini playbooks/dev.yaml -e wsl_default_user=$(WSL_USER) -e windows_user=$(WINDOWS_USER)"
 
 wsl-cloud:
-	wsl -d $(WSL_DISTRO) -u root -- bash -lc "cd '$(WSL_SIBLE_DIR)/wsl/ansible/' && ANSIBLE_CONFIG='$(WSL_SIBLE_DIR)/wsl/ansible/ansible.cfg' ansible-playbook -i inventory/local.ini playbooks/cloud.yaml"
+	wsl -d $(WSL_DISTRO) -u root -- bash -lc "cd '$(WSL_SIBLE_DIR)/wsl/ansible/' && ANSIBLE_CONFIG='$(WSL_SIBLE_DIR)/wsl/ansible/ansible.cfg' ansible-playbook -i inventory/local.ini playbooks/cloud.yaml -e wsl_default_user=$(WSL_USER) -e windows_user=$(WINDOWS_USER)"
 
 wsl-rsync:
 	wsl -d $(WSL_DISTRO) -u root -- bash -lc "rsync -av /mnt/c/Users/$(WINDOWS_USER)/source/repos/github/win-sible/ $(WSL_SIBLE_DIR)"

@@ -43,6 +43,16 @@
         state: present
       register: user_creation_result
 
+    - name: Resolve default user's home directory
+      ansible.builtin.command: "getent passwd {{ wsl_default_user }} | cut -d: -f6"
+      register: wsl_default_home_cmd
+      changed_when: false
+      failed_when: false
+
+    - name: Set default user's home directory fact
+      ansible.builtin.set_fact:
+        wsl_default_home: "{{ wsl_default_home_cmd.stdout | trim | default('/root' if wsl_default_user == 'root' else '/home/' ~ wsl_default_user, true) }}"
+
     - name: Display current user before password change prompt
       ansible.builtin.debug:
         msg: "Current user: {{ wsl_default_user }}"
@@ -95,7 +105,7 @@
 
     - name: Create .sudo_as_admin_successful
       ansible.builtin.file:
-        path: "/home/{{ wsl_default_user }}/.sudo_as_admin_successful"
+        path: "{{ wsl_default_home }}/.sudo_as_admin_successful"
         state: touch
         owner: "{{ wsl_default_user }}"
         group: "{{ wsl_default_user }}"
@@ -103,7 +113,7 @@
 
     - name: Create .hushlogin
       ansible.builtin.file:
-        path: "/home/{{ wsl_default_user }}/.hushlogin"
+        path: "{{ wsl_default_home }}/.hushlogin"
         state: touch
         owner: "{{ wsl_default_user }}"
         group: "{{ wsl_default_user }}"
