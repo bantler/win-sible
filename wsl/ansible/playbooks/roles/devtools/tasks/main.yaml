@@ -180,7 +180,17 @@
     line: "\n\\1"
     backrefs: true
 
+- name: Check if GitHub Copilot CLI is installed
+  ansible.builtin.command: copilot --version
+  register: copilot_cli_version
+  changed_when: false
+  failed_when: false
 
+- name: Install GitHub Copilot CLI
+  ansible.builtin.shell: curl -fsSL https://gh.io/copilot-install | bash
+  args:
+    executable: /bin/bash
+  when: copilot_cli_version.rc != 0
 
 - name: Ensure aliases module directory exists for current shell
   ansible.builtin.file:

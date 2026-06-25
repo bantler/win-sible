@@ -1,5 +1,3 @@
-- import_playbook: base.yaml
-
 - hosts: local
   connection: local
   become: true

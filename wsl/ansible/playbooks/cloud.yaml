@@ -1,5 +1,9 @@
 - hosts: local
+  connection: local
   become: true
+
+  vars_files:
+    - ../group_vars/cloud.yaml
 
   roles:
     - cloud

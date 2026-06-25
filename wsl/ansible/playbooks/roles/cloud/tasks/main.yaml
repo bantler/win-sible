@@ -1,3 +1,11 @@
+- name: Resolve shell target username
+  ansible.builtin.set_fact:
+    username: "{{ username | default(wsl_default_user | default(default_user | default(ansible_user_id)), true) }}"
+
+- name: Resolve home directory for target user
+  ansible.builtin.set_fact:
+    user_home: "{{ '/root' if username == 'root' else '/home/' ~ username }}"
+
 - name: Ensure Azure CLI is installed
   shell: |
     curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
@@ -8,28 +16,23 @@
   command: az extension add --name databricks
   ignore_errors: true
 
-- name: Ensure Databricks CLI is installed
-  pip:
-    name: databricks-cli
-    executable: pip3
-
-# ---- AZURE LOGIN ----
-- name: Check if already logged into Azure
-  command: az account show
-  register: az_login_check
-  ignore_errors: true
+- name: Check if Databricks CLI is installed
+  ansible.builtin.command: databricks version
+  register: databricks_cli_version
   changed_when: false
+  failed_when: false
 
-- name: Login to Azure (interactive)
-  command: az login
-  when: az_login_check.rc != 0
-
-- name: Set Azure subscription
-  command: az account set --subscription "{{ azure_subscription_id }}"
+- name: Ensure Databricks CLI is installed
+  ansible.builtin.shell: curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | sh
+  args:
+    executable: /bin/bash
+  when: databricks_cli_version.rc != 0
 
 # ---- DATABRICKS CONFIG ----
 - name: Create .databrickscfg
   template:
     src: databricks.cfg.j2
-    dest: "/home/{{ username }}/.databrickscfg"
+    dest: "{{ user_home }}/.databrickscfg"
+    owner: "{{ username }}"
+    group: "{{ username }}"
     mode: '0600'
