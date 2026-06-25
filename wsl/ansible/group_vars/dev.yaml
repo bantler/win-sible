@@ -12,6 +12,7 @@ dev_packages:
   - zoxide
   - direnv
   - jq
+  - golang-go
 
 docker_enabled: true
 

@@ -58,31 +58,6 @@
     path: /tmp/eza.tar.gz
     state: absent
 
-# # Install Terraform
-# - name: Download Terraform
-#   get_url:
-#     url: "https://releases.hashicorp.com/terraform/{{ terraform_version }}/terraform_{{ terraform_version }}_linux_amd64.zip"
-#     dest: /tmp/terraform.zip
-#     mode: '0644'
-
-# - name: Unzip Terraform
-#   unarchive:
-#     src: /tmp/terraform.zip
-#     dest: /tmp
-#     remote_src: yes
-
-# - name: Move Terraform binary to /usr/local/bin
-#   copy:
-#     src: /tmp/terraform
-#     dest: /usr/local/bin/terraform
-#     mode: '0755'
-#     remote_src: yes
-
-# - name: Cleanup Terraform zip
-#   file:
-#     path: /tmp/terraform.zip
-#     state: absent
-
 # Add zoxide init to default shell (bash or zsh)
 - name: Initialize zoxide in default shell
   blockinfile:
@@ -110,6 +85,21 @@
   ansible.builtin.lineinfile:
     path: "/home/{{ username }}/{{ aliases_shell_rc }}"
     regexp: "^(?!\\n)(# BEGIN ANSIBLE MANAGED DIRENV INIT)$"
+    line: "\n\\1"
+    backrefs: true
+
+- name: Configure Go env in default shell
+  ansible.builtin.blockinfile:
+    path: "/home/{{ username }}/{{ aliases_shell_rc }}"
+    marker: "# {mark} ANSIBLE MANAGED GO ENV"
+    block: |
+      export GOPATH="$HOME/go"
+      export PATH="$PATH:$GOPATH/bin"
+
+- name: Ensure blank line before GO ENV marker in shell rc file
+  ansible.builtin.lineinfile:
+    path: "/home/{{ username }}/{{ aliases_shell_rc }}"
+    regexp: "^(?!\\n)(# BEGIN ANSIBLE MANAGED GO ENV)$"
     line: "\n\\1"
     backrefs: true
 
@@ -189,6 +179,8 @@
     regexp: "^(?!\\n)(# BEGIN ANSIBLE MANAGED TERRAFORM AUTOCOMPLETE)$"
     line: "\n\\1"
     backrefs: true
+
+
 
 - name: Ensure aliases module directory exists for current shell
   ansible.builtin.file:
