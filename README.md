@@ -9,7 +9,7 @@ This repository bootstraps a Windows development machine, configures core toolin
 ## Why This Project
 
 - Standardize local developer workstation setup
-- Reduce manual onboarding steps
+- Reduce manual setup steps
 - Keep Windows and WSL setup automated and reproducible
 - Separate baseline, development, and cloud-focused configuration stages
 
