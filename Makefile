@@ -2,7 +2,7 @@
 
 # Linux Distro to be install in WSL
 WSL_DISTRO ?= Ubuntu-22.04
-WSL_USER ?= bantler
+WSL_USER ?= YourWSLUserNameHere
 WINDOWS_USER ?= $(USERNAME)
 
 # Get current git repo root
