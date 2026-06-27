@@ -63,45 +63,53 @@
   blockinfile:
     path: "/home/{{ username }}/{{ aliases_shell_rc }}"
     marker: "# {mark} ANSIBLE MANAGED ZOXIDE INIT"
+    prepend_newline: yes
     block: |
       eval "$(zoxide init {{ aliases_shell_name }})"
-
-- name: Ensure blank line before ZOXIDE marker in shell rc file
-  ansible.builtin.lineinfile:
-    path: "/home/{{ username }}/{{ aliases_shell_rc }}"
-    regexp: "^(?!\\n)(# BEGIN ANSIBLE MANAGED ZOXIDE INIT)$"
-    line: "\n\\1"
-    backrefs: true
 
 # Add direnv init to default shell (bash or zsh)
 - name: Initialize direnv in default shell
   blockinfile:
     path: "/home/{{ username }}/{{ aliases_shell_rc }}"
     marker: "# {mark} ANSIBLE MANAGED DIRENV INIT"
+    prepend_newline: yes
     block: |
       eval "$(direnv hook {{ aliases_shell_name }})"
 
-- name: Ensure blank line before DIRENV marker in shell rc file
-  ansible.builtin.lineinfile:
+- name: Check if uv is installed
+  become_user: "{{ username }}"
+  ansible.builtin.shell: |
+    export PATH="$HOME/.local/bin:$PATH"
+    command -v uv
+  args:
+    executable: /bin/bash
+  register: uv_version
+  changed_when: false
+  failed_when: false
+
+- name: Install uv
+  become_user: "{{ username }}"
+  ansible.builtin.shell: curl -LsSf https://astral.sh/uv/install.sh | sh
+  args:
+    executable: /bin/bash
+  when: uv_version.rc != 0
+
+- name: Add uv shell completion to default shell
+  blockinfile:
     path: "/home/{{ username }}/{{ aliases_shell_rc }}"
-    regexp: "^(?!\\n)(# BEGIN ANSIBLE MANAGED DIRENV INIT)$"
-    line: "\n\\1"
-    backrefs: true
+    marker: "# {mark} ANSIBLE MANAGED UV PATH"
+    prepend_newline: yes
+    block: |
+      eval "$(uv generate-shell-completion {{ aliases_shell_name }})"
 
 - name: Configure Go env in default shell
   ansible.builtin.blockinfile:
     path: "/home/{{ username }}/{{ aliases_shell_rc }}"
     marker: "# {mark} ANSIBLE MANAGED GO ENV"
+    prepend_newline: yes
     block: |
       export GOPATH="$HOME/go"
       export PATH="$PATH:$GOPATH/bin"
-
-- name: Ensure blank line before GO ENV marker in shell rc file
-  ansible.builtin.lineinfile:
-    path: "/home/{{ username }}/{{ aliases_shell_rc }}"
-    regexp: "^(?!\\n)(# BEGIN ANSIBLE MANAGED GO ENV)$"
-    line: "\n\\1"
-    backrefs: true
 
 # Install tfenv (Terraform version manager)
 - name: Ensure tfenv directory is owned by target user before clone/update
@@ -131,30 +139,18 @@
   blockinfile:
     path: "/home/{{ username }}/{{ aliases_shell_rc }}"
     marker: "# {mark} ANSIBLE MANAGED TFENV PATH"
+    prepend_newline: yes
     block: |
       export PATH="$HOME/.tfenv/bin:$PATH"
-
-- name: Ensure blank line before TFENV PATH marker in shell rc file
-  ansible.builtin.lineinfile:
-    path: "/home/{{ username }}/{{ aliases_shell_rc }}"
-    regexp: "^(?!\\n)(# BEGIN ANSIBLE MANAGED TFENV PATH)$"
-    line: "\n\\1"
-    backrefs: true
 
 # Add tfenv init to current shell rc file
 - name: Enable tfenv in current shell
   blockinfile:
     path: "/home/{{ username }}/{{ aliases_shell_rc }}"
     marker: "# {mark} ANSIBLE MANAGED TFENV INIT"
+    prepend_newline: yes
     block: |
       eval "$(tfenv init -)"
-
-- name: Ensure blank line before TFENV INIT marker in shell rc file
-  ansible.builtin.lineinfile:
-    path: "/home/{{ username }}/{{ aliases_shell_rc }}"
-    regexp: "^(?!\\n)(# BEGIN ANSIBLE MANAGED TFENV INIT)$"
-    line: "\n\\1"
-    backrefs: true
 
 # Install terraform versions with tfenv
 - name: Install pinned Terraform version
@@ -170,15 +166,9 @@
   blockinfile:
     path: "/home/{{ username }}/{{ aliases_shell_rc }}"
     marker: "# {mark} ANSIBLE MANAGED TERRAFORM AUTOCOMPLETE"
+    prepend_newline: yes
     block: |
       complete -C /usr/local/bin/terraform terraform
-
-- name: Ensure blank line before TERRAFORM AUTOCOMPLETE marker in shell rc file
-  ansible.builtin.lineinfile:
-    path: "/home/{{ username }}/{{ aliases_shell_rc }}"
-    regexp: "^(?!\\n)(# BEGIN ANSIBLE MANAGED TERRAFORM AUTOCOMPLETE)$"
-    line: "\n\\1"
-    backrefs: true
 
 - name: Check if GitHub Copilot CLI is installed
   ansible.builtin.command: copilot --version

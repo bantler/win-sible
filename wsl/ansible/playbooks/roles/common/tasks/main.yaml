@@ -19,29 +19,26 @@
       ansible.builtin.debug:
         msg: "pkg_mgr={{ pkg_mgr }}, install_packages_count={{ install_packages | length }}"
 
-    - name: Install packages (apt)
-      ansible.builtin.apt:
-        name: "{{ install_packages }}"
-        state: present
-      when:
-        - pkg_mgr == 'apt'
-        - install_packages | length > 0
+    - name: Install packages
+      block:
+        - name: Install packages (apt)
+          ansible.builtin.apt:
+            name: "{{ install_packages }}"
+            state: present
+          when: pkg_mgr == 'apt'
 
-    - name: Install packages (pacman)
-      ansible.builtin.pacman:
-        name: "{{ install_packages }}"
-        state: present
-      when:
-        - pkg_mgr == 'pacman'
-        - install_packages | length > 0
+        - name: Install packages (pacman)
+          ansible.builtin.pacman:
+            name: "{{ install_packages }}"
+            state: present
+          when: pkg_mgr == 'pacman'
 
-    - name: Install packages (apk)
-      ansible.builtin.apk:
-        name: "{{ install_packages }}"
-        state: present
-      when:
-        - pkg_mgr == 'apk'
-        - install_packages | length > 0
+        - name: Install packages (apk)
+          ansible.builtin.apk:
+            name: "{{ install_packages }}"
+            state: present
+          when: pkg_mgr == 'apk'
+      when: install_packages | length > 0
 
   # APT-specific repo and key tasks
 - name: Add Microsoft packages repo (apt)

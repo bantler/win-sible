@@ -145,18 +145,12 @@
     group: "{{ username }}"
     mode: "0644"
     marker: "# {mark} ANSIBLE MANAGED SHELL MODULES"
+    prepend_newline: yes
     block: |
       [ -f ~/{{ effective_shell_dir }}/aliases.{{ effective_shell_name }} ] && . ~/{{ effective_shell_dir }}/aliases.{{ effective_shell_name }}
       [ -f ~/{{ effective_shell_dir }}/functions.{{ effective_shell_name }} ] && . ~/{{ effective_shell_dir }}/functions.{{ effective_shell_name }}
       [ -f ~/{{ effective_shell_dir }}/starship.{{ effective_shell_name }} ] && . ~/{{ effective_shell_dir }}/starship.{{ effective_shell_name }}
       [ -f ~/{{ effective_shell_dir }}/wsl2fix.{{ effective_shell_name }} ] && . ~/{{ effective_shell_dir }}/wsl2fix.{{ effective_shell_name }}
-
-- name: Ensure blank line before SHELL MODULES marker in shell rc file
-  ansible.builtin.lineinfile:
-    path: "/home/{{ username }}/{{ effective_shell_rc }}"
-    regexp: "^(?!\\n)(# BEGIN ANSIBLE MANAGED SHELL MODULES)$"
-    line: "\n\\1"
-    backrefs: true
 
 - name: Install zsh autosuggestions plugin
   git:
@@ -227,6 +221,7 @@
   blockinfile:
     path: "/home/{{ username }}/.bashrc"
     marker: "# {mark} ANSIBLE MANAGED STARSHIP INIT"
+    prepend_newline: yes
     block: |
       eval "$(starship init bash)"
     create: yes
@@ -234,34 +229,15 @@
     - ((install_starship_requested | default(false)) or not starship_installed.stat.exists)
     - "'/bash' in default_shell.stdout"
 
-- name: Ensure blank line before Starship marker in bashrc
-  ansible.builtin.lineinfile:
-    path: "/home/{{ username }}/.bashrc"
-    regexp: "^(?!\\n)(# BEGIN ANSIBLE MANAGED STARSHIP INIT)$"
-    line: "\n\\1"
-    backrefs: true
-  when:
-    - not starship_installed.stat.exists
-    - "'/bash' in default_shell.stdout"
-
 # Initalise starship prompt in zsh
 - name: Ensure Starship init in zsh
   blockinfile:
     path: "/home/{{ username }}/.zshrc"
     marker: "# {mark} ANSIBLE MANAGED STARSHIP INIT"
+    prepend_newline: yes
     block: |
       eval "$(starship init zsh)"
     create: yes
-  when:
-    - ((install_starship_requested | default(false)) or not starship_installed.stat.exists)
-    - "'/zsh' in default_shell.stdout"
-
-- name: Ensure blank line before Starship marker in zshrc
-  ansible.builtin.lineinfile:
-    path: "/home/{{ username }}/.zshrc"
-    regexp: "^(?!\\n)(# BEGIN ANSIBLE MANAGED STARSHIP INIT)$"
-    line: "\n\\1"
-    backrefs: true
   when:
     - ((install_starship_requested | default(false)) or not starship_installed.stat.exists)
     - "'/zsh' in default_shell.stdout"

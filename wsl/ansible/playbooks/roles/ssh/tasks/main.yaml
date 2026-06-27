@@ -148,6 +148,7 @@
     group: "{{ username }}"
     mode: "0644"
     marker: "# {mark} ANSIBLE MANAGED SSH AGENT BOOTSTRAP"
+    prepend_newline: yes
     block: |
       SSH_ENV="$HOME/.ssh/environment"
 
@@ -175,10 +176,3 @@
       else
         start_agent;
       fi
-
-- name: Ensure blank line before SSH marker in shell rc file
-  ansible.builtin.lineinfile:
-    path: "/home/{{ username }}/{{ shell_rc_file }}"
-    regexp: "^(?!\\n)(# BEGIN ANSIBLE MANAGED SSH AGENT BOOTSTRAP)$"
-    line: "\n\\1"
-    backrefs: true
