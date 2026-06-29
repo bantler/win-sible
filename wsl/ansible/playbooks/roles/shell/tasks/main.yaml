@@ -28,7 +28,7 @@
 
 # Install zsh and set as default shell
 - name: Install zsh
-  apt:
+  ansible.builtin.package:
     name: zsh
     state: present
   when: install_zsh_prompt.user_input | lower == 'yes'
@@ -165,17 +165,22 @@
   when: install_zsh_prompt.user_input | lower == 'yes'
 
 - name: Enable Zsh plugins in .zshrc
-  lineinfile:
+  blockinfile:
     path: "/home/{{ username }}/.zshrc"
-    regexp: '^plugins='
-    line: 'plugins=(git zsh-autosuggestions zsh-syntax-highlighting)'
+    marker: "# {mark} ANSIBLE MANAGED ZSH PLUGINS"
+    prepend_newline: yes
+    block: |
+      plugins=(git zsh-autosuggestions zsh-syntax-highlighting)
     create: yes
   when: install_zsh_prompt.user_input | lower == 'yes'
 
 - name: Ensure syntax highlighting is loaded last
-  lineinfile:
+  blockinfile:
     path: "/home/{{ username }}/.zshrc"
-    line: "source ~/.zsh/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
+    marker: "# {mark} ANSIBLE MANAGED ZSH SYNTAX HIGHLIGHTING"
+    prepend_newline: yes
+    block: |
+      source ~/.zsh/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
     create: yes
   when: install_zsh_prompt.user_input | lower == 'yes'
 

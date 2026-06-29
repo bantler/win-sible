@@ -161,14 +161,14 @@
     tfenv use {{ terraform_version }}
   when: terraform_version is defined
 
-# Add Terraform autocomplete
-- name: Add terraform autocomplete to current shell
-  blockinfile:
-    path: "/home/{{ username }}/{{ aliases_shell_rc }}"
-    marker: "# {mark} ANSIBLE MANAGED TERRAFORM AUTOCOMPLETE"
-    prepend_newline: yes
-    block: |
-      complete -C /usr/local/bin/terraform terraform
+# Install Terraform autocomplete
+- name: Install Terraform autocomplete
+  become_user: "{{ username }}"
+  ansible.builtin.shell: terraform -install-autocomplete
+  args:
+    executable: /bin/bash
+  changed_when: false
+  failed_when: false
 
 - name: Check if GitHub Copilot CLI is installed
   ansible.builtin.command: copilot --version

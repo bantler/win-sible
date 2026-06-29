@@ -340,7 +340,8 @@ if ((Read-Host "Would you like to install WSL '$WSL_DISTRO'? (Y/N)") -notin @('n
     }
 
     Write-Host "Installing Ansible and rsync on $WSL_DISTRO..." -ForegroundColor Cyan
-    wsl -d $WSL_DISTRO -u root -- bash -lc "apt-get update && apt-get install -y ansible rsync"
+    $installCmd = "if command -v apt-get &> /dev/null; then apt-get update && apt-get install -y ansible rsync; elif command -v pacman &> /dev/null; then pacman-key --init && pacman-key --populate && pacman -Syu --noconfirm ansible rsync; else echo 'Unsupported package manager'; exit 1; fi"
+    wsl -d $WSL_DISTRO -u root -- bash -lc "$installCmd"
     Write-Host "Ansible and rsync installed successfully on $WSL_DISTRO" -ForegroundColor Green
 
     Write-Host "Copying repository files to $WSL_DISTRO..." -ForegroundColor Cyan
