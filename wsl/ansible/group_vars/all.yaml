@@ -1,0 +1,33 @@
+# Defaults for the wsl_setup role
+wsl_default_user: root
+
+# Packages per package manager
+pkg_map:
+  apt:
+    - apt-transport-https
+    - software-properties-common
+    - build-essential
+    - git
+    - wget
+    - curl
+    - gnupg
+    - htop
+    - zip
+    - unzip
+    - ca-certificates
+    - lsb-release
+    - ripgrep
+    - fd-find
+  # pacman:
+  #   - base
+  #   - git
+  #   - wget
+  #   - curl
+  #   - gnupg
+  #   - htop
+  #   - zip
+  #   - unzip
+  #   - ca-certificates
+  #   - lsb-release
+  #   - ripgrep
+  #   - fd

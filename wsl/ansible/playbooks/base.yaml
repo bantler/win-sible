@@ -1,0 +1,13 @@
+- hosts: local
+  connection: local
+  become: true
+  
+  vars_files:
+    - ../group_vars/all.yaml
+
+  roles:
+    - wsl
+    - common
+    - shell
+    - ssh
+    - git

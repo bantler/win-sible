@@ -1,8 +1,0 @@
-- import_playbook: base.yml
-
-- hosts: local
-  become: true
-
-  roles:
-    - devtools
-    - docker

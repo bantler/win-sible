@@ -1,0 +1,139 @@
+- name: Prevent services from auto-starting (WSL best practice)
+  copy:
+    dest: /usr/sbin/policy-rc.d
+    content: |
+      #!/bin/sh
+      exit 101
+    mode: '0755'
+
+- name: Determine default user (UID 1000)
+  become: true
+  ansible.builtin.command: "getent passwd 1000 | cut -d: -f1"
+  register: default_user_cmd
+  changed_when: false
+  failed_when: false
+
+- name: Set default_user fact
+  ansible.builtin.set_fact:
+    default_user: "{{ default_user_cmd.stdout | trim | default(ansible_facts.get('env', {}).get('SUDO_USER') | default(ansible_facts.get('user_id')), true) }}"
+
+- name: Set admin group fact
+  ansible.builtin.set_fact:
+    admin_group: "{{ 'wheel' if ansible_facts.get('pkg_mgr') == 'pacman' else 'sudo' }}"
+
+- name: Configure WSL default Linux user
+  become: true
+  when: wsl_default_user is defined and (wsl_default_user | length > 0)
+  block:
+    - name: Validate Linux username
+      ansible.builtin.assert:
+        that:
+          - wsl_default_user is match('^[a-z_][a-z0-9_-]*$')
+        fail_msg: "Invalid Linux username '{{ wsl_default_user }}'."
+
+    - name: Check whether target user already exists
+      ansible.builtin.command: "getent passwd {{ wsl_default_user }}"
+      register: existing_user_check
+      changed_when: false
+      failed_when: false
+
+    - name: Ensure user exists
+      ansible.builtin.user:
+        name: "{{ wsl_default_user }}"
+        shell: "{{ '/bin/zsh' if ansible_env.SHELL | default('/bin/bash') is search('zsh') else '/bin/bash' }}"
+        create_home: true
+        groups: "{{ admin_group }}"
+        append: true
+        state: present
+      register: user_creation_result
+
+    - name: Resolve default user's home directory
+      ansible.builtin.command: "getent passwd {{ wsl_default_user }} | cut -d: -f6"
+      register: wsl_default_home_cmd
+      changed_when: false
+      failed_when: false
+
+    - name: Set default user's home directory fact
+      ansible.builtin.set_fact:
+        wsl_default_home: "{{ wsl_default_home_cmd.stdout | trim | default('/root' if wsl_default_user == 'root' else '/home/' ~ wsl_default_user, true) }}"
+
+    - name: Display current user before password change prompt
+      ansible.builtin.debug:
+        msg: "Current user: {{ wsl_default_user }}"
+
+    - name: Prompt for password change on existing user
+      become: false
+      ansible.builtin.pause:
+        prompt: "User already exists. Change password? (Yes/No)"
+        echo: true
+      register: password_change_prompt
+      when: existing_user_check.rc == 0
+
+    - name: Prompt for user password
+      become: false
+      ansible.builtin.pause:
+        prompt: "Enter password for {{ wsl_default_user }} (leave blank to skip)"
+        echo: false
+      register: user_password_input
+      when: existing_user_check.rc != 0 or (existing_user_check.rc == 0 and (password_change_prompt.user_input | default('no') | lower) == 'yes')
+
+    - name: Prompt for password confirmation
+      become: false
+      ansible.builtin.pause:
+        prompt: "Confirm password for {{ wsl_default_user }}"
+        echo: false
+      register: user_password_confirm
+      when: (existing_user_check.rc != 0 or (existing_user_check.rc == 0 and (password_change_prompt.user_input | default('no') | lower) == 'yes')) and user_password_input.user_input | length > 0
+
+    - name: Validate passwords match
+      ansible.builtin.assert:
+        that:
+          - user_password_input.user_input == user_password_confirm.user_input
+        fail_msg: "Passwords do not match. Please try again."
+      when: (existing_user_check.rc != 0 or (existing_user_check.rc == 0 and (password_change_prompt.user_input | default('no') | lower) == 'yes')) and user_password_input.user_input | length > 0
+
+    - name: Set user password (hashed)
+      ansible.builtin.user:
+        name: "{{ wsl_default_user }}"
+        password: "{{ user_password_input.user_input | password_hash('sha512') }}"
+      when: (existing_user_check.rc != 0 or (existing_user_check.rc == 0 and (password_change_prompt.user_input | default('no') | lower) == 'yes')) and user_password_input.user_input | length > 0
+
+    - name: Ensure /etc/wsl.conf has [user] default
+      ansible.builtin.ini_file:
+        path: /etc/wsl.conf
+        section: user
+        option: default
+        value: "{{ wsl_default_user }}"
+        mode: "0644"
+        backup: true
+
+    - name: Create .sudo_as_admin_successful
+      ansible.builtin.file:
+        path: "{{ wsl_default_home }}/.sudo_as_admin_successful"
+        state: touch
+        owner: "{{ wsl_default_user }}"
+        group: "{{ wsl_default_user }}"
+        mode: "0644"
+
+    - name: Create .hushlogin
+      ansible.builtin.file:
+        path: "{{ wsl_default_home }}/.hushlogin"
+        state: touch
+        owner: "{{ wsl_default_user }}"
+        group: "{{ wsl_default_user }}"
+        mode: "0644"
+
+- name: Configure WSL settings
+  copy:
+    dest: /etc/wsl.conf
+    content: |
+      [boot]
+      systemd=true
+
+      [network]
+      generateHosts=true
+      generateResolvConf=true
+
+      [interop]
+      enabled=true
+      appendWindowsPath=false

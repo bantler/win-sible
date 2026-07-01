@@ -1,0 +1,256 @@
+# Tasks for shell configuration (bash, zsh, starship prompt, etc)
+
+- name: Resolve shell target username
+  ansible.builtin.set_fact:
+    username: "{{ username | default(wsl_default_user | default(default_user | default(ansible_user_id)), true) }}"
+
+- name: Resolve dotfiles root path
+  ansible.builtin.set_fact:
+    dotfiles_root: "{{ dotfiles_root | default((playbook_dir | dirname | dirname | dirname) ~ '/dotfiles', true) }}"
+
+### ZSH Shell configuration ###
+
+- name: Get current default shell for target user
+  ansible.builtin.shell: |
+    getent passwd {{ username }} | cut -d: -f7
+  register: current_default_shell
+  changed_when: false
+
+- name: Display current default shell
+  ansible.builtin.debug:
+    msg: "Current default shell for {{ username }} is {{ current_default_shell.stdout | trim }}"
+
+# Prompt user to install and configure zsh
+- name: Prompt user to install and configure zsh
+  pause:
+    prompt: "Do you want to install zsh and apply configuration? (yes/no?)"
+  register: install_zsh_prompt
+
+# Install zsh and set as default shell
+- name: Install zsh
+  ansible.builtin.package:
+    name: zsh
+    state: present
+  when: install_zsh_prompt.user_input | lower == 'yes'
+
+- name: Set default shell
+  user:
+    name: "{{ username }}"
+    shell: /usr/bin/zsh
+  when: install_zsh_prompt.user_input | lower == 'yes'
+
+- name: Resolve effective shell target for module generation
+  ansible.builtin.set_fact:
+    effective_shell_name: "{{ 'zsh' if install_zsh_prompt.user_input | lower == 'yes' else ('zsh' if '/zsh' in current_default_shell.stdout else 'bash') }}"
+    effective_shell_dir: "{{ '.zsh' if install_zsh_prompt.user_input | lower == 'yes' else ('.zsh' if '/zsh' in current_default_shell.stdout else '.bash') }}"
+    effective_shell_rc: "{{ '.zshrc' if install_zsh_prompt.user_input | lower == 'yes' else ('.zshrc' if '/zsh' in current_default_shell.stdout else '.bashrc') }}"
+
+- name: Ensure effective shell module directory exists
+  ansible.builtin.file:
+    path: "/home/{{ username }}/{{ effective_shell_dir }}"
+    state: directory
+    owner: "{{ username }}"
+    group: "{{ username }}"
+    mode: "0755"
+
+- name: Generate functions module for effective shell
+  ansible.builtin.copy:
+    dest: "/home/{{ username }}/{{ effective_shell_dir }}/functions.{{ effective_shell_name }}"
+    owner: "{{ username }}"
+    group: "{{ username }}"
+    mode: "0644"
+    content: |
+      # Colormap
+      {% if effective_shell_name == 'zsh' %}
+      function colormap() {
+        for i in {0..255}; do print -Pn "%K{$i}  %k%F{$i}${(l:3::0:)i}%f " ${${(M)$((i%6)):#3}:+$'\n'}; done
+      }
+      {% else %}
+      colormap() {
+        local i
+        for i in $(seq 0 255); do
+          printf "\e[48;5;%sm  \e[0m\e[38;5;%sm%03d\e[0m " "$i" "$i" "$i"
+          if (( (i + 1) % 6 == 0 )); then
+            printf "\n"
+          fi
+        done
+      }
+      {% endif %}
+
+- name: Generate starship distro module for effective shell
+  ansible.builtin.copy:
+    dest: "/home/{{ username }}/{{ effective_shell_dir }}/starship.{{ effective_shell_name }}"
+    owner: "{{ username }}"
+    group: "{{ username }}"
+    mode: "0644"
+    content: |
+      # find out which distribution we are running on
+      _distro=$(awk '/^ID=/' /etc/*-release | awk -F'=' '{ print tolower($2) }')
+
+      # set an icon based on the distro
+      # make sure your font is compatible with https://github.com/lukas-w/font-logos
+      case $_distro in
+          *kali*)                  ICON="ﴣ ";;
+          *arch*)                  ICON=" ";;
+          *debian*)                ICON=" ";;
+          *raspbian*)              ICON=" ";;
+          *ubuntu*)                ICON=" ";;
+          *elementary*)            ICON=" ";;
+          *fedora*)                ICON=" ";;
+          *coreos*)                ICON=" ";;
+          *gentoo*)                ICON=" ";;
+          *mageia*)                ICON=" ";;
+          *centos*)                ICON=" ";;
+          *opensuse*|*tumbleweed*) ICON=" ";;
+          *sabayon*)               ICON=" ";;
+          *slackware*)             ICON=" ";;
+          *linuxmint*)             ICON=" ";;
+          *alpine*)                ICON=" ";;
+          *aosc*)                  ICON=" ";;
+          *nixos*)                 ICON=" ";;
+          *devuan*)                ICON=" ";;
+          *manjaro*)               ICON=" ";;
+          *rhel*)                  ICON=" ";;
+          *macos*)                 ICON=" ";;
+          *)                       ICON=" ";;
+      esac
+
+      export STARSHIP_DISTRO="$ICON"
+
+- name: Generate WSL interop and DNS helper module for effective shell
+  ansible.builtin.copy:
+    dest: "/home/{{ username }}/{{ effective_shell_dir }}/wsl2fix.{{ effective_shell_name }}"
+    owner: "{{ username }}"
+    group: "{{ username }}"
+    mode: "0644"
+    content: |
+      # Fix Interop Error that randomly occurs in vscode terminal when using WSL2
+      fix_wsl2_interop() {
+          for i in $(pstree -np -s $$ | grep -o -E '[0-9]+'); do
+              if [[ -e "/run/WSL/${i}_interop" ]]; then
+                  export WSL_INTEROP=/run/WSL/${i}_interop
+              fi
+          done
+      }
+
+      fixdns() {
+        command sudo bash -c "sed -i '/management.azure.com/d' /etc/hosts" ; sudo bash -c 'echo "$(dig management.azure.com | grep -E -o "([0-9]{1,3}[\.]){3}[0-9]{1,3}$") management.azure.com" >> /etc/hosts'
+      }
+
+- name: Ensure shell modules are sourced from effective rc file
+  ansible.builtin.blockinfile:
+    path: "/home/{{ username }}/{{ effective_shell_rc }}"
+    create: yes
+    owner: "{{ username }}"
+    group: "{{ username }}"
+    mode: "0644"
+    marker: "# {mark} ANSIBLE MANAGED SHELL MODULES"
+    prepend_newline: yes
+    block: |
+      [ -f ~/{{ effective_shell_dir }}/aliases.{{ effective_shell_name }} ] && . ~/{{ effective_shell_dir }}/aliases.{{ effective_shell_name }}
+      [ -f ~/{{ effective_shell_dir }}/functions.{{ effective_shell_name }} ] && . ~/{{ effective_shell_dir }}/functions.{{ effective_shell_name }}
+      [ -f ~/{{ effective_shell_dir }}/starship.{{ effective_shell_name }} ] && . ~/{{ effective_shell_dir }}/starship.{{ effective_shell_name }}
+      [ -f ~/{{ effective_shell_dir }}/wsl2fix.{{ effective_shell_name }} ] && . ~/{{ effective_shell_dir }}/wsl2fix.{{ effective_shell_name }}
+
+- name: Install zsh autosuggestions plugin
+  git:
+    repo: https://github.com/zsh-users/zsh-autosuggestions
+    dest: "/home/{{ username }}/.zsh/zsh-autosuggestions"
+  when: install_zsh_prompt.user_input | lower == 'yes'
+
+- name: Install zsh syntax highlighting plugin
+  git:
+    repo: https://github.com/zsh-users/zsh-syntax-highlighting
+    dest: "/home/{{ username }}/.zsh/zsh-syntax-highlighting"
+  when: install_zsh_prompt.user_input | lower == 'yes'
+
+- name: Enable Zsh plugins in .zshrc
+  blockinfile:
+    path: "/home/{{ username }}/.zshrc"
+    marker: "# {mark} ANSIBLE MANAGED ZSH PLUGINS"
+    prepend_newline: yes
+    block: |
+      plugins=(git zsh-autosuggestions zsh-syntax-highlighting)
+    create: yes
+  when: install_zsh_prompt.user_input | lower == 'yes'
+
+- name: Ensure syntax highlighting is loaded last
+  blockinfile:
+    path: "/home/{{ username }}/.zshrc"
+    marker: "# {mark} ANSIBLE MANAGED ZSH SYNTAX HIGHLIGHTING"
+    prepend_newline: yes
+    block: |
+      source ~/.zsh/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+    create: yes
+  when: install_zsh_prompt.user_input | lower == 'yes'
+
+### Starship prompt configuration ###
+
+# Check if Starship is already installed
+- name: Check if Starship is installed
+  stat:
+    path: /usr/local/bin/starship
+  register: starship_installed
+
+# Prompt user to install and configure Starship (only if not installed)
+- name: Prompt user to install and configure Starship
+  pause:
+    prompt: "Do you want to install Starship and apply configuration? (yes/no?)"
+  register: install_starship_prompt
+  when: not (starship_installed.stat.exists and install_zsh_prompt.user_input | lower != 'yes')
+
+- name: Resolve whether Starship should be installed
+  ansible.builtin.set_fact:
+    install_starship_requested: "{{ (install_starship_prompt.user_input | default('no') | trim | lower) == 'yes' }}"
+  when: not (starship_installed.stat.exists and install_zsh_prompt.user_input | lower != 'yes')
+
+# Install Starship (cross-shell prompt)
+- name: Install Starship (cross-shell prompt)
+  shell: |
+    curl -sS https://starship.rs/install.sh | sh -s -- -y
+  args:
+    creates: /usr/local/bin/starship
+  when:
+    - not starship_installed.stat.exists
+    - install_starship_requested | default(false)
+
+# Check default shell and initialize Starship accordingly
+- name: Get default shell
+  shell: |
+    getent passwd {{ username }} | cut -d: -f7
+  register: default_shell
+  when: (install_starship_requested | default(false)) or not starship_installed.stat.exists
+
+# Initialize starship in bash
+- name: Ensure Starship init in bash
+  blockinfile:
+    path: "/home/{{ username }}/.bashrc"
+    marker: "# {mark} ANSIBLE MANAGED STARSHIP INIT"
+    prepend_newline: yes
+    block: |
+      eval "$(starship init bash)"
+    create: yes
+  when:
+    - ((install_starship_requested | default(false)) or not starship_installed.stat.exists)
+    - "'/bash' in default_shell.stdout"
+
+# Initalise starship prompt in zsh
+- name: Ensure Starship init in zsh
+  blockinfile:
+    path: "/home/{{ username }}/.zshrc"
+    marker: "# {mark} ANSIBLE MANAGED STARSHIP INIT"
+    prepend_newline: yes
+    block: |
+      eval "$(starship init zsh)"
+    create: yes
+  when:
+    - ((install_starship_requested | default(false)) or not starship_installed.stat.exists)
+    - "'/zsh' in default_shell.stdout"
+
+# Copy starship configuration files from dotfiles
+- name: Copy starship folder from dotfiles
+  synchronize:
+    src: "{{ dotfiles_root }}/.config/"
+    dest: "/home/{{ username }}/.config/"
+    recursive: yes
+  when: (install_starship_requested | default(false)) or not starship_installed.stat.exists

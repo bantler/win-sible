@@ -1,0 +1,178 @@
+- name: Resolve shell target username
+  ansible.builtin.set_fact:
+    username: "{{ username | default(wsl_default_user | default(default_user | default(ansible_user_id)), true) }}"
+
+- name: Resolve default login shell for target user
+  ansible.builtin.command: "getent passwd {{ username }}"
+  register: user_passwd_entry
+  changed_when: false
+
+- name: Select shell rc file from default login shell
+  ansible.builtin.set_fact:
+    shell_rc_file: >-
+      {{
+        '.zshrc'
+          if (user_passwd_entry.stdout.split(':')[-1] | trim).endswith('zsh')
+          else '.bashrc'
+      }}
+
+- name: Resolve Windows username for mounted profile path
+  ansible.builtin.set_fact:
+    windows_user: >-
+      {{
+        windows_user
+          | default(lookup('env', 'USERNAME'), true)
+          | default((playbook_dir.split('/')[4] if (playbook_dir is defined and playbook_dir.startswith('/mnt/c/Users/')) else ''), true)
+          | default((ansible_env.PWD.split('/')[4] if (ansible_env.PWD is defined and ansible_env.PWD.startswith('/mnt/c/Users/')) else ''), true)
+          | default((ansible_env.SUDO_USER if (ansible_env.SUDO_USER is defined and ansible_env.SUDO_USER != 'root') else ''), true)
+          | default((ansible_env.USER if (ansible_env.USER is defined and ansible_env.USER != 'root') else ''), true)
+      }}
+
+- name: Check resolved Windows profile directory
+  ansible.builtin.stat:
+    path: "/mnt/c/Users/{{ windows_user }}"
+  register: windows_profile_dir
+
+- name: Validate resolved Windows profile directory
+  ansible.builtin.assert:
+    that:
+      - windows_user is defined
+      - windows_user | length > 0
+      - windows_profile_dir.stat.exists
+    fail_msg: "Unable to resolve Windows profile path under /mnt/c/Users. Set windows_user explicitly if auto-detection is incorrect."
+    
+- name: Ensure WSL .ssh directory exists
+  ansible.builtin.file:
+    path: "/home/{{ username }}/.ssh"
+    state: directory
+    owner: "{{ username }}"
+    group: "{{ username }}"
+    mode: "0700"
+
+- name: Check Windows .ssh directory
+  ansible.builtin.stat:
+    path: "/mnt/c/Users/{{ windows_user }}/.ssh"
+  register: windows_ssh_dir
+
+- name: Validate Windows .ssh directory
+  ansible.builtin.assert:
+    that:
+      - windows_ssh_dir.stat.exists
+      - windows_ssh_dir.stat.isdir
+    fail_msg: "Windows .ssh directory was not found at /mnt/c/Users/{{ windows_user }}/.ssh"
+
+- name: Copy Windows .ssh contents into WSL .ssh
+  ansible.builtin.copy:
+    src: "/mnt/c/Users/{{ windows_user }}/.ssh/"
+    dest: "/home/{{ username }}/.ssh/"
+    remote_src: true
+    owner: "{{ username }}"
+    group: "{{ username }}"
+    mode: preserve
+    directory_mode: "0700"
+
+- name: Enforce ownership and secure permissions on WSL .ssh
+  ansible.builtin.file:
+    path: "/home/{{ username }}/.ssh"
+    state: directory
+    recurse: true
+    owner: "{{ username }}"
+    group: "{{ username }}"
+
+- name: Find directories under WSL .ssh
+  ansible.builtin.find:
+    paths: "/home/{{ username }}/.ssh"
+    file_type: directory
+  register: wsl_ssh_directories
+
+- name: Set directory permissions to 0700
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: "{{ username }}"
+    group: "{{ username }}"
+    mode: "0700"
+  loop: "{{ wsl_ssh_directories.files }}"
+  loop_control:
+    label: "{{ item.path }}"
+
+- name: Find private/config SSH files in WSL .ssh
+  ansible.builtin.find:
+    paths: "/home/{{ username }}/.ssh"
+    file_type: file
+    patterns:
+      - "id_*"
+      - "*.pem"
+      - "*.key"
+      - "config"
+      - "authorized_keys"
+  register: wsl_ssh_private_files
+
+- name: Set private/config SSH file permissions to 0600
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: file
+    owner: "{{ username }}"
+    group: "{{ username }}"
+    mode: "0600"
+  loop: "{{ wsl_ssh_private_files.files }}"
+  loop_control:
+    label: "{{ item.path }}"
+  when: item.path is not regex('\\.pub$')
+
+- name: Find public and host key metadata files in WSL .ssh
+  ansible.builtin.find:
+    paths: "/home/{{ username }}/.ssh"
+    file_type: file
+    patterns:
+      - "*.pub"
+      - "known_hosts"
+  register: wsl_ssh_public_files
+
+- name: Set public key and known_hosts file permissions to 0644
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: file
+    owner: "{{ username }}"
+    group: "{{ username }}"
+    mode: "0644"
+  loop: "{{ wsl_ssh_public_files.files }}"
+  loop_control:
+    label: "{{ item.path }}"
+
+- name: Ensure SSH agent bootstrap block exists in default shell rc file
+  ansible.builtin.blockinfile:
+    path: "/home/{{ username }}/{{ shell_rc_file }}"
+    create: true
+    owner: "{{ username }}"
+    group: "{{ username }}"
+    mode: "0644"
+    marker: "# {mark} ANSIBLE MANAGED SSH AGENT BOOTSTRAP"
+    prepend_newline: yes
+    block: |
+      SSH_ENV="$HOME/.ssh/environment"
+
+      # Kill any existing agent tied to this session
+      pkill ssh-agent >/dev/null 2>&1
+
+      # start the ssh-agent
+      function start_agent {
+        echo "Initializing new SSH Agent ..."
+
+        # spawn ssh-agent
+        /usr/bin/ssh-agent | sed 's/^echo/#echo/' > "${SSH_ENV}"
+
+        echo "... succeeded!"
+        chmod 600 "${SSH_ENV}"
+        . "${SSH_ENV}" > /dev/null
+        /usr/bin/ssh-add
+      }
+
+      if [ -f "${SSH_ENV}" ]; then
+        . "${SSH_ENV}" > /dev/null
+        ps -ef | grep ${SSH_AGENT_PID} | grep ssh-agent$ > /dev/null || {
+          start_agent;
+        }
+      else
+        start_agent;
+      fi

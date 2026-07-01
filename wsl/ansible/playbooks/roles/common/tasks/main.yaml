@@ -1,0 +1,88 @@
+- name: Gather package manager
+  ansible.builtin.set_fact:
+    pkg_mgr: "{{ ansible_pkg_mgr }}"
+
+- name: Install packages for detected package manager
+  block:
+    - name: Set install_packages
+      ansible.builtin.set_fact:
+        install_packages: "{{ pkg_map[pkg_mgr] | default([]) }}"
+
+    - name: Validate package map for detected manager
+      ansible.builtin.assert:
+        that:
+          - pkg_map is mapping
+          - pkg_mgr in pkg_map
+        fail_msg: "No package map entry for detected package manager '{{ pkg_mgr }}'."
+
+    - name: Show selected package count
+      ansible.builtin.debug:
+        msg: "pkg_mgr={{ pkg_mgr }}, install_packages_count={{ install_packages | length }}"
+
+    - name: Install packages
+      block:
+        - name: Install packages (apt)
+          ansible.builtin.apt:
+            name: "{{ install_packages }}"
+            state: present
+          when: pkg_mgr == 'apt'
+
+        - name: Install packages (pacman)
+          ansible.builtin.pacman:
+            name: "{{ install_packages }}"
+            state: present
+          when: pkg_mgr == 'pacman'
+
+        - name: Install packages (apk)
+          ansible.builtin.apk:
+            name: "{{ install_packages }}"
+            state: present
+          when: pkg_mgr == 'apk'
+      when: install_packages | length > 0
+
+  # APT-specific repo and key tasks
+- name: Add Microsoft packages repo (apt)
+  block:
+    - name: Download Microsoft packages prod deb
+      ansible.builtin.get_url:
+        url: "https://packages.microsoft.com/config/ubuntu/{{ ansible_distribution_version | default(ansible_lsb.release) }}/packages-microsoft-prod.deb"
+        dest: /tmp/packages-microsoft-prod.deb
+
+    - name: Install Microsoft packages deb
+      ansible.builtin.apt:
+        deb: /tmp/packages-microsoft-prod.deb
+        state: present
+      register: microsoft_packages_deb_install
+      failed_when:
+        - microsoft_packages_deb_install is failed
+        - "'a later version is already installed' not in ((microsoft_packages_deb_install.msg | default('')) | lower)"
+
+    - name: Remove Microsoft deb file
+      ansible.builtin.file:
+        path: /tmp/packages-microsoft-prod.deb
+        state: absent
+  when: pkg_mgr == 'apt'
+
+- name: Update & Upgrade installed packages (apt)
+  ansible.builtin.apt:
+    update_cache: yes
+    cache_valid_time: 0
+    upgrade: dist
+    force_apt_get: yes
+  when: pkg_mgr == 'apt'
+
+- name: Update & Upgrade installed packages (pacman)
+  ansible.builtin.pacman:
+    update_cache: yes
+    cache_valid_time: 0
+    upgrade: dist
+    force_pacman_get: yes
+  when: pkg_mgr == 'pacman'
+
+- name: Update & Upgrade installed packages (apk)
+  ansible.builtin.apk:
+    update_cache: yes
+    cache_valid_time: 0
+    upgrade: dist
+    force_apk_get: yes
+  when: pkg_mgr == 'apk'

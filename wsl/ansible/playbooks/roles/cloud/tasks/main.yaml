@@ -1,0 +1,38 @@
+- name: Resolve shell target username
+  ansible.builtin.set_fact:
+    username: "{{ username | default(wsl_default_user | default(default_user | default(ansible_user_id)), true) }}"
+
+- name: Resolve home directory for target user
+  ansible.builtin.set_fact:
+    user_home: "{{ '/root' if username == 'root' else '/home/' ~ username }}"
+
+- name: Ensure Azure CLI is installed
+  shell: |
+    curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+  args:
+    creates: /usr/bin/az
+
+- name: Install Databricks Azure extension
+  command: az extension add --name databricks
+  ignore_errors: true
+
+- name: Check if Databricks CLI is installed
+  ansible.builtin.command: databricks version
+  register: databricks_cli_version
+  changed_when: false
+  failed_when: false
+
+- name: Ensure Databricks CLI is installed
+  ansible.builtin.shell: curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | sh
+  args:
+    executable: /bin/bash
+  when: databricks_cli_version.rc != 0
+
+# ---- DATABRICKS CONFIG ----
+- name: Create .databrickscfg
+  template:
+    src: databricks.cfg.j2
+    dest: "{{ user_home }}/.databrickscfg"
+    owner: "{{ username }}"
+    group: "{{ username }}"
+    mode: '0600'

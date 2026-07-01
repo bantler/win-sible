@@ -1,0 +1,146 @@
+# ~/.config/starship.toml
+scan_timeout = 100
+
+# Get editor completions based on the config schema
+"$schema" = 'https://starship.rs/config-schema.json'
+
+# Inserts a blank line between shell prompts
+add_newline     = true
+command_timeout = 1000
+
+# Sets user-defined palette
+# Palettes must be defined _after_ this line
+palette = 'bantler'
+
+# Change the default prompt format
+format = """\
+[╭╴](238)\
+$os\
+$username\
+$hostname\
+$directory\
+$git_branch\
+$git_status\
+$fill\
+$all\
+[╰─](238)\
+$character"""
+
+# Palette definitions
+[palettes.bantler]
+pink        = '#ff5eed'
+purple      = '#ba5aff'
+blue        = '#5c78ff'
+lightblue   = '#5ac8ff'
+green       = '#5effc3'
+base        = '#d1d1d1'
+
+[fill]
+symbol = ' '
+
+# Replace the '❯' symbol in the prompt with '➜'
+[character] # The name of the module we are configuring is 'character'
+success_symbol = '[❯](bold green)' # The 'success_symbol' segment is being set to '➜' with the color 'bold green'
+
+[os]
+format      = '[$symbol](bold white) '
+disabled    = false
+
+[os.symbols]
+Windows     = ' '
+Arch        = '󰣇'
+Ubuntu      = ' '
+Debian      = ' '
+Alpine      = ' '
+Android     = ' '
+Raspbian    = ' '
+
+# Shows the username
+[username]
+style_user  = 'pink bold'
+style_root  = 'base bold'
+format      = '[$user]($style) '
+disabled    = false
+show_always = true
+aliases     = { 'bantl' = 'bantler' }
+
+# Shows the hostname
+[hostname]
+ssh_only    = false
+format      = 'on [$hostname](bold purple) '
+disabled    = false
+
+# Shows current directory
+[directory]
+truncation_length   = 3
+truncation_symbol   = '…/'
+home_symbol         = '󰋜 ~'
+read_only_style     = '197'
+read_only           = ' '
+format              = 'at [$path]($style)[$read_only]($read_only_style) '
+
+# Shows current git branch
+[git_branch]
+symbol = ' '
+format = 'via [$symbol$branch]($style)'
+
+# truncation_length = 4
+truncation_symbol   = '…/'
+style               = 'bold green'
+
+# Shows current git status
+[git_status]
+format      = '([ \($all_status $ahead_behind\)]($style))'
+style       = 'bold base'
+conflicted  = '[ confliced=${count}](red)'
+up_to_date  = '[󰘽 up-to-date](green)'
+untracked   = '[󰋗 untracked=${count}](red)'
+ahead       = ' ahead=${count}'
+diverged    = ' ahead=${ahead_count}  behind=${behind_count}'
+behind      = ' behind=${count}'
+stashed     = '[ stashed=${count}](green)'
+modified    = '[󰛿 modified=${count}](blue)'
+staged      = '[󰐗 staged=${count}](green)'
+renamed     = '[󱍸 renamed=${count}](yellow)'
+deleted     = '[󰍶 deleted=${count}](red)'
+
+[package]
+symbol = '󰏗 '
+
+[python]
+symbol          = ' '
+python_binary   = 'python3'
+
+[scala]
+symbol = ' '
+
+[aws]
+format      = '[$symbol($profile )(\($region\) )(\[$duration\] )]($style)'
+symbol      = ' '
+style       = 'lightblue bold'
+disabled    = true
+
+[azure]
+format      = '[$symbol($subscription)]($style)'
+symbol      = '󰠅 '
+style       = 'lightblue bold'
+disabled    = false
+
+[azure.subscription_aliases]
+pay-as-you-go-subscription = 'PAYG'
+
+[kubernetes]
+format      = 'via [󱃾 $context\($namespace\)](bold purple)'
+disabled    = false
+
+[vagrant]
+disabled = true
+
+[helm]
+disabled = true
+
+[nodejs]
+disabled = true
+
+[ruby]
+disabled = true
