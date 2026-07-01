@@ -58,34 +58,73 @@ if (-not (Test-Admin)) {
 # Set script directory to the repository root for any relative file operations. This ensures consistent behavior regardless of how the script is launched.
 $scriptDir = Split-Path -Parent $PSCommandPath
 
-Write-Host "Running as Administrator" -ForegroundColor Green
+function Show-MainMenu {
+    Clear-Host
+    Write-Host "Running as Administrator" -ForegroundColor Green
+    Write-Host "" 
+    Write-Host "========================================================" -ForegroundColor DarkCyan
+    Write-Host "         Local Environment Bootstrap (Windows)" -ForegroundColor Cyan
+    Write-Host "========================================================" -ForegroundColor DarkCyan
+    Write-Host "" 
+    Write-Host "1. Install Developer Applications via Winget." -ForegroundColor Gray
+    Write-Host "2. Enable OpenSSH capabilities and setup SSH keys." -ForegroundColor Gray
+    Write-Host "3. Apply Git configuration (email and username)." -ForegroundColor Gray
+    Write-Host "4. Install Windows Subsystem for Linux (WSL)." -ForegroundColor Gray
+    Write-Host "Q. Quit" -ForegroundColor Gray
+    Write-Host ""
 
-Write-Host "" 
-Write-Host "========================================================" -ForegroundColor DarkCyan
-Write-Host "  Local Environment Bootstrap (Windows)" -ForegroundColor Cyan
-Write-Host "========================================================" -ForegroundColor DarkCyan
-Write-Host "This script will guide you through optional setup tasks." -ForegroundColor Gray
-Write-Host "" 
-Write-Host "Planned steps:" -ForegroundColor Cyan
-Write-Host "  1. Install and upgrade Windows apps (Winget)." -ForegroundColor Gray
-Write-Host "  2. Configure Git identity settings." -ForegroundColor Gray
-Write-Host "  3. Setup OpenSSH capabilities and SSH keys." -ForegroundColor Gray
-Write-Host "  4. Install/configure WSL distro: $WSL_DISTRO." -ForegroundColor Gray
-Write-Host "" 
-Write-Host "You will be prompted before each step runs." -ForegroundColor Yellow
-Write-Host ""
+    $choice = Read-Host "Select an option"
 
-# Install Windows applications via Winget
-if ((Read-Host "Would you like to install Windows applications via Winget? (Y/N)")  -notin @('n','N')) {
+    switch ($choice) {
+        '1' { Show-WingetMenu }
+        '2' { Show-OpenSSHMenu }
+        '3' { Show-GitConfigMenu }
+        '4' { Show-WSLMenu }
+        'Q' { return }
+        default { 
+            Write-Host "Warning: Invalid selection '$choice'. Please select a valid option (1, 2, 3, 4, or Q)." -ForegroundColor Yellow
+            Start-Sleep -Seconds 2
+            Show-MainMenu 
+        }
+    }
+}
 
+function Show-WingetMenu {
+    Clear-Host
+    Write-Host "Running as Administrator" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "========================================================" -ForegroundColor DarkCyan
+    Write-Host "             Winget Application Management" -ForegroundColor Cyan
+    Write-Host "========================================================" -ForegroundColor DarkCyan
+    Write-Host "1. Apply Winget Configuration" -ForegroundColor Gray
+    Write-Host "2. Upgrade all Installed Packages" -ForegroundColor Gray
+    Write-Host "B. Back" -ForegroundColor Gray
+
+    $choice = Read-Host "Select an option"
+
+    switch ($choice) {
+        '1' { Apply-WingetConfiguration }
+        '2' { Upgrade-AllWingetPackages }
+        'B' { Show-MainMenu }
+        default { 
+            Write-Host "Warning: Invalid selection '$choice'. Please select a valid option (1, 2, or B)." -ForegroundColor Yellow
+            Start-Sleep -Seconds 2
+            Show-WingetMenu
+        }
+    }
+}
+
+function Apply-WingetConfiguration {
+
+    Write-Host ""
     Write-Host "Enabling Winget configure" -ForegroundColor Cyan
     winget configure --Enable
-    
+
     Write-Host "Applying winget configuration" -ForegroundColor Cyan
-    winget configure -f "$scriptDir\configuration.dev.yaml"
+    winget configure -f "$scriptDir\configuration.dev.yaml" --accept-configuration-agreements
 
     Write-Host "Upgrading all packages" -ForegroundColor Cyan
-    winget upgrade --all --accept-source-agreements --accept-package-agreements
+    winget upgrade --all --accept-package-agreements --accept-source-agreements
 
     # Add GnuWin32 to user PATH if not already present
     $pathToAdd = "C:\Program Files (x86)\GnuWin32\bin"
@@ -98,6 +137,7 @@ if ((Read-Host "Would you like to install Windows applications via Winget? (Y/N)
     # Copy dotfiles to user profile
     $dotfilesSource = Join-Path $scriptDir "../dotfiles\.config"
     $dotfilesDestination = Join-Path $env:USERPROFILE ".config"
+
     if (Test-Path $dotfilesSource) {
         Write-Host "Copying dotfiles from $dotfilesSource to $dotfilesDestination" -ForegroundColor Cyan
         Copy-Item -Path $dotfilesSource -Destination $dotfilesDestination -Recurse -Force
@@ -108,72 +148,79 @@ if ((Read-Host "Would you like to install Windows applications via Winget? (Y/N)
     # Copy dotfiles to user profile
     $dotfilesSource = Join-Path $scriptDir "../dotfiles\.pwsh\*"
     $dotfilesDestination = Join-Path $env:USERPROFILE "Documents\PowerShell"
+
     if (Test-Path $dotfilesSource) {
         Write-Host "Copying dotfiles from $dotfilesSource to $dotfilesDestination" -ForegroundColor Cyan
         Copy-Item -Path $dotfilesSource -Destination $dotfilesDestination -Recurse -Force
     } else {
         Write-Host "Dotfiles source not found: $dotfilesSource" -ForegroundColor Yellow
     }
-    
-    Write-Host "Winget applications installed and configured successfully." -ForegroundColor Green
+
+    Write-Host "Winget configuration applied successfully. Recommended to restart your computer to ensure all changes take effect." -ForegroundColor Green
+
+    Pause
+    Show-WingetMenu
 }
 
-# Configure Git user name and email based on registry values from Microsoft Office identity information
-if ((Read-Host "Would you like to configure Git user name and email? (Y/N)") -notin @('n','N')) {
-    $identity = Get-ItemProperty "HKCU:\Software\Microsoft\Office\16.0\Common\Identity" -ErrorAction SilentlyContinue
+function Upgrade-AllWingetPackages {
 
-    $Email = Get-PropertyIfExists -Object $identity -PropertyName "ADUserName"
-    if (-not $Email) {
-        $Email = Read-Host "Enter your email address"
-    }
+    Write-Host ""
+    Write-Host "Upgrading all installed packages via Winget..." -ForegroundColor Cyan
+    winget upgrade --all --accept-package-agreements --accept-source-agreements
 
-    if ($Email) {
-        Write-Host "Setting Git email to $Email" -ForegroundColor Cyan
-        git config --global user.email $Email *> $null
-    }
-
-    $Name = Get-PropertyIfExists -Object $identity -PropertyName "ADUserDisplayName"
-    if (-not $Name) {
-        $Name = Read-Host "Enter your name"
-    }
-
-    if ($Name) {
-        Write-Host "Setting Git username to $Name" -ForegroundColor Cyan
-        git config --global user.name $Name *> $null
-    }
-
-    Write-Host "Git configuration applied successfully." -ForegroundColor Green
+    Write-Host "All packages upgraded successfully." -ForegroundColor Green
+    
+    Pause
+    Show-WingetMenu
 }
 
-# Configure SSH keys and OpenSSH Client/Server capabilities for Windows
-if ((Read-Host "Would you like to setup SSH keys and OpenSSH Client/Server capabilities? (Y/N)") -notin @('n','N')) {
-    
+function Show-OpenSSHMenu {
+    Clear-Host
+    Write-Host "Running as Administrator" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "========================================================" -ForegroundColor DarkCyan
+    Write-Host "             OpenSSH Configuration" -ForegroundColor Cyan
+    Write-Host "========================================================" -ForegroundColor DarkCyan
+    Write-Host "1. Enable OpenSSH Client and Server Capabilities" -ForegroundColor Gray
+    Write-Host "2. Generate SSH Keys and Configure SSH Agent" -ForegroundColor Gray
+    Write-Host "B. Back" -ForegroundColor Gray
+
+    $choice = Read-Host "Select an option"
+
+    switch ($choice) {
+        '1' { Enable-OpenSSHCapabilities }
+        '2' { Setup-SSHKeys }
+        'B' { Show-MainMenu }
+        default { 
+            Write-Host "Warning: Invalid selection '$choice'. Please select a valid option (1, 2, or B)." -ForegroundColor Yellow
+            Start-Sleep -Seconds 2
+            Show-OpenSSHMenu
+        }
+    }
+}
+
+function Enable-OpenSSHCapabilities {
+
+    Write-Host ""
+
+    # Check and enable required Windows optional features.
     Write-Host "Checking and enabling OpenSSH Client and Server Windows Capabilities if not already enabled..." -ForegroundColor Cyan
-    
+
     $requiredCapabilities = @(
         "OpenSSH.Client~~~~0.0.1.0",
         "OpenSSH.Server~~~~0.0.1.0"
     )
-    
-    $capabilitiesInstalled = $false
-    
-    foreach ($capabilityName in $requiredCapabilities) {
-        $capability = Get-WindowsCapability -Online | Where-Object Name -like "$capabilityName"
         
-        if ($capability.State -eq "Installed") {
-            Write-Host "$capabilityName is already installed" -ForegroundColor Yellow
+    foreach ($capabilityName in $requiredCapabilities) {
+        $capability = Get-WindowsCapability -Online -Name $capabilityName
+
+        if ($capability.State -eq "Enabled") {
+            Write-Host "$capabilityName is already enabled" -ForegroundColor Yellow
         }
         else {
             Write-Host "$capabilityName is not enabled. Enabling now..." -ForegroundColor Green
-            Add-WindowsCapability -Online -Name $capabilityName
-            $capabilitiesInstalled = $true
+            dism.exe /online /Add-Capability /CapabilityName:$capabilityName /norestart
         }
-    }
-    
-    if ($capabilitiesInstalled) {
-        Write-Host "New Windows capabilities are pending installation. You must restart your machine to complete the installation. After restarting, relaunch this script to continue." -ForegroundColor Yellow
-        Read-Host "Press Enter to restart your machine now"
-        Restart-Computer -Force
     }
 
     # Start the sshd service
@@ -197,6 +244,15 @@ if ((Read-Host "Would you like to setup SSH keys and OpenSSH Client/Server capab
     } else {
         Write-Host "Firewall rule 'OpenSSH-Server-In-TCP' already exists." -ForegroundColor Yellow
     }
+
+    Write-Host "OpenSSH Client and Server capabilities enabled successfully. Recommended to restart your computer to ensure all changes take effect." -ForegroundColor Green
+    Pause
+    Show-OpenSSHMenu
+}
+
+function Setup-SSHKeys {
+
+    Write-Host ""
 
     # Ensure .ssh directory exists
     $KeyPath = Join-Path $env:USERPROFILE ".ssh"
@@ -282,14 +338,99 @@ if ((Read-Host "Would you like to setup SSH keys and OpenSSH Client/Server capab
 
     Write-Host "SSH environment is now configured..." -ForegroundColor Green
     Write-Host "Please add the public key(s) to your GitHub account, Azure DevOps - RSA, or other git hosting provider to enable SSH authentication." -ForegroundColor Cyan
+
+    Pause
+    Show-OpenSSHMenu
 }
 
-# Set the current directory to the automation root folder.
-$scriptDir = Split-Path (Split-Path  $PSCommandPath -Parent) -Parent
-Set-Location $scriptDir
-write-Host "Set current directory to repository root: $scriptDir" -ForegroundColor Green
+function Show-GitConfigMenu {
+    Clear-Host
+    Write-Host "Running as Administrator" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "========================================================" -ForegroundColor DarkCyan
+    Write-Host "                 Git Configuration" -ForegroundColor Cyan
+    Write-Host "========================================================" -ForegroundColor DarkCyan
+    Write-Host "1. Configure Git user name and email" -ForegroundColor Gray
+    Write-Host "B. Back" -ForegroundColor Gray
 
-if ((Read-Host "Would you like to install WSL '$WSL_DISTRO'? (Y/N)") -notin @('n','N')) {
+    $choice = Read-Host "Select an option"
+
+    switch ($choice) {
+        '1' { Configure-GitIdentity }
+        'B' { Show-MainMenu }
+        default { 
+            Write-Host "Warning: Invalid selection '$choice'. Please select a valid option (1 or B)." -ForegroundColor Yellow
+            Start-Sleep -Seconds 2
+            Show-GitConfigMenu
+        }
+    }
+}
+
+function Configure-GitIdentity {
+
+    Write-Host ""
+
+    $identity = Get-ItemProperty "HKCU:\Software\Microsoft\Office\16.0\Common\Identity" -ErrorAction SilentlyContinue
+
+    $Email = Get-PropertyIfExists -Object $identity -PropertyName "ADUserName"
+    if (-not $Email) {
+        $Email = Read-Host "Enter your email address"
+    }
+
+    if ($Email) {
+        Write-Host "Setting Git email to $Email" -ForegroundColor Cyan
+        git config --global user.email $Email *> $null
+    }
+
+    $Name = Get-PropertyIfExists -Object $identity -PropertyName "ADUserDisplayName"
+    if (-not $Name) {
+        $Name = Read-Host "Enter your name"
+    }
+
+    if ($Name) {
+        Write-Host "Setting Git username to $Name" -ForegroundColor Cyan
+        git config --global user.name $Name *> $null
+    }
+
+    Write-Host "Git configuration applied successfully." -ForegroundColor Green
+
+    Pause
+    Show-GitConfigMenu
+}
+
+function Show-WSLMenu {
+    Clear-Host
+    Write-Host "Running as Administrator" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "========================================================" -ForegroundColor DarkCyan
+    Write-Host "             Windows Subsystem for Linux (WSL)" -ForegroundColor Cyan
+    Write-Host "========================================================" -ForegroundColor DarkCyan
+    Write-Host "1. Install WSL and Configure Distro" -ForegroundColor Gray
+    Write-Host "2. Unregister WSL Distro" -ForegroundColor Gray
+    Write-Host "B. Back" -ForegroundColor Gray
+
+    $choice = Read-Host "Select an option"
+
+    switch ($choice) {
+        '1' { Install-AndConfigureWSL }
+        '2' { Unregister-WSLDistro }
+        'B' { Show-MainMenu }
+        default { 
+            Write-Host "Warning: Invalid selection '$choice'. Please select a valid option (1, 2, or B)." -ForegroundColor Yellow
+            Start-Sleep -Seconds 2
+            Show-WSLMenu
+        }
+    }
+}
+
+function Install-AndConfigureWSL {
+
+    Write-Host ""
+
+    # Set the current directory to the automation root folder.
+    $scriptDir = Split-Path (Split-Path  $PSCommandPath -Parent) -Parent
+    Set-Location $scriptDir
+    write-Host "Set current directory to repository root: $scriptDir" -ForegroundColor Green
 
     # Check and enable required Windows optional features.
     Write-Host "Checking required Windows features are enabled..." -ForegroundColor Cyan
@@ -362,7 +503,37 @@ if ((Read-Host "Would you like to install WSL '$WSL_DISTRO'? (Y/N)") -notin @('n
     }
 
     Write-Host "Repository files copied successfully to ${WSL_DISTRO}:${destRoot}" -ForegroundColor Green
+
+    Write-Host "Windows Subsystem for Linux (WSL) setup completed! Ensure to restart your computer for all changes to take effect." -ForegroundColor Green
+    Pause
+    Show-WSLMenu
 }
 
-Write-Host "Windows Bootstrap process completed! Ensure to restart your computer for all changes to take effect." -ForegroundColor Green
-Pause
+function Unregister-WSLDistro {
+
+    Write-Host ""
+    Write-Host "Checking if $WSL_DISTRO is installed..."
+    $distroList = wsl --list --quiet 2>$null
+    
+    if (-not ($distroList -contains $WSL_DISTRO)) {
+        Write-Host "$WSL_DISTRO is not installed on this system." -ForegroundColor Yellow
+        Pause
+        Show-WSLMenu
+        return
+    }
+
+    Write-Host "Unregistering $WSL_DISTRO"
+    wsl --unregister $WSL_DISTRO
+
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "$WSL_DISTRO was unregistered successfully."
+    }
+    else {
+        Write-Host "Failed to unregister $WSL_DISTRO."
+    }
+
+    Pause
+    Show-WSLMenu
+}
+
+Show-MainMenu
