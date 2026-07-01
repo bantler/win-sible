@@ -497,7 +497,7 @@ function Install-AndConfigureWSL {
     $srcWsl = $srcWsl.Trim()
     $destRoot = "/root/.automation"
 
-    wsl -d $WSL_DISTRO -u root -- bash -lc "mkdir -p '$destRoot' && rsync -av --delete '$srcWsl/' '$destRoot/'"
+    wsl -d $WSL_DISTRO -u root -- bash -lc "mkdir -p '$destRoot' && rsync -av --delete --exclude '/.git/' '$srcWsl/' '$destRoot/'"
     if ($LASTEXITCODE -ne 0) {
         throw "Failed to copy repository files into $WSL_DISTRO using rsync."
     }

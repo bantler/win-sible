@@ -31,13 +31,3 @@ pkg_map:
   #   - lsb-release
   #   - ripgrep
   #   - fd
-
-  # apk:
-  #   - bash
-  #   - git
-  #   - curl
-  #   - wget
-  #   - openssh
-  #   - python3
-  #   - py3-virtualenv
-  #   - zsh

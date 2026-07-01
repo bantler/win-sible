@@ -16,14 +16,16 @@ This repository bootstraps a Windows development machine, configures core toolin
 ## Features
 
 - Interactive Windows bootstrap script (`windows/bootstrap.ps1`) that can:
-  - Install and upgrade Windows apps via Winget
-  - Configure global Git identity
-  - Configure OpenSSH client/server and generate SSH keys
-  - Install and configure a WSL distro
+  - Install Developer Applications via Winget
+  - Enable OpenSSH capabilities and setup SSH keys
+  - Apply Git configuration (email and username)
+  - Install Windows Subsystem for Linux (WSL).
+  - Use `windows/README.md` for detailed bootstrap behavior and menu-level guidance
 - Ansible-driven WSL provisioning with staged playbooks:
   - Base setup
   - Development tools setup
   - Cloud tooling setup
+  - Use `wsl/README.md` for detailed playbook behavior and role-level guidance
 - Makefile targets for a consistent command interface
 
 ## Project Structure
@@ -43,7 +45,8 @@ win-sible/
 ├─ windows/
 │  ├─ bootstrap.ps1
 │  ├─ configuration.dev.yaml
-│  └─ configuration.gaming.yaml
+│  ├─ configuration.gaming.yaml
+│  └─ README.md
 ├─ wsl/
 │  └─ ansible/
 │     ├─ group_vars/
@@ -105,10 +108,10 @@ Run from the repository root.
 
 ```powershell
 make bootstrap
+make wsl-rsync
 make wsl-base
 make wsl-dev
 make wsl-cloud
-make rsync
 ```
 
 ## Make Targets
@@ -126,7 +129,7 @@ make rsync
 
 The `Makefile` supports these key variables:
 
-- `WSL_DISTRO` (default: `Ubuntu-22.04`)
+- `WSL_DISTRO` (default: `Ubuntu-24.04`)
 - `WSL_USER` (default: `YourWSLUserNameHere`)
 - `WINDOWS_USER` (default: current `%USERNAME%`)
 - `WSL_SIBLE_DIR` (default: `/root/.automation`)
