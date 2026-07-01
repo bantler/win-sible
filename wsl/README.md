@@ -14,7 +14,7 @@ Path: `wsl/ansible`
 
 - Defines a local inventory (`inventory/local.ini`) targeting localhost.
 - Uses `ansible.cfg` for local execution defaults.
-- Organizes setup into playbooks and reusable roles.
+- Organises setup into playbooks and reusable roles.
 - Applies configuration idempotently where possible (safe to rerun).
 
 ### Playbooks
@@ -22,11 +22,9 @@ Path: `wsl/ansible`
 - `playbooks/base.yaml`
   - Roles: `wsl`, `common`, `shell`, `ssh`, `git`
   - Uses vars from `group_vars/all.yaml`
-
 - `playbooks/dev.yaml`
   - Roles: `devtools`, `docker`
   - Uses vars from `group_vars/dev.yaml`
-
 - `playbooks/cloud.yaml`
   - Role: `cloud`
   - Uses vars from `group_vars/cloud.yaml`
@@ -36,6 +34,7 @@ Path: `wsl/ansible`
 ### 1) Base setup (`make wsl-base`)
 
 WSL role (`roles/wsl`):
+
 - Creates `/usr/sbin/policy-rc.d` to prevent auto-starting services during package installs.
 - Detects and configures default Linux user (`wsl_default_user`).
 - Creates user if needed, adds admin group membership, and can set password interactively.
@@ -46,6 +45,7 @@ WSL role (`roles/wsl`):
 - Ensures per-user marker files like `.hushlogin`.
 
 Common role (`roles/common`):
+
 - Detects package manager and installs baseline packages from `group_vars/all.yaml` (`pkg_map`).
 - Supports package manager mappings for:
   - `apt` (configured and active)
@@ -53,6 +53,7 @@ Common role (`roles/common`):
 - On `apt`, adds Microsoft package feed and performs update/upgrade.
 
 Shell role (`roles/shell`):
+
 - Prompts to install/configure zsh.
 - Prompts to install/configure Starship prompt.
 - Creates shell modules for aliases/functions/starship/WSL helpers.
@@ -60,11 +61,13 @@ Shell role (`roles/shell`):
 - Copies starship config from repo dotfiles.
 
 SSH role (`roles/ssh`):
+
 - Detects Windows profile path and copies `%USERPROFILE%/.ssh` from Windows mount into WSL user `.ssh`.
 - Applies secure ownership and permissions.
 - Adds SSH agent bootstrap logic to user shell rc.
 
 Git role (`roles/git`):
+
 - Detects current global git identity.
 - Prompts to update if already set.
 - Sets `user.name` and `user.email` globally.
@@ -72,6 +75,7 @@ Git role (`roles/git`):
 ### 2) Dev setup (`make wsl-dev`)
 
 Devtools role (`roles/devtools`):
+
 - Installs dev packages from `group_vars/dev.yaml` (Python toolchain, Node.js/npm, PowerShell, jq, golang, etc.).
 - Installs/sets up:
   - `tldr` via `pipx`
@@ -83,12 +87,14 @@ Devtools role (`roles/devtools`):
 - Generates shell aliases module.
 
 Docker role (`roles/docker`):
+
 - Installs `docker.io` when `docker_enabled` is true.
 - Adds execution user to `docker` group.
 
 ### 3) Cloud setup (`make wsl-cloud`)
 
 Cloud role (`roles/cloud`):
+
 - Installs Azure CLI.
 - Adds Azure Databricks extension to Azure CLI.
 - Installs Databricks CLI if missing.
@@ -99,7 +105,7 @@ Cloud role (`roles/cloud`):
 From the repository `Makefile`:
 
 - `WSL_DISTRO=Ubuntu-24.04`
-- `WSL_USER=bantler`
+- `WSL_USER=YourWSLUserNameHere`
 - `WINDOWS_USER=%USERNAME%`
 - `WSL_SIBLE_DIR=/root/.automation`
 

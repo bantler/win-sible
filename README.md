@@ -1,6 +1,6 @@
-![win-sible banner](assets/win-sible.png)
-
 # win-sible
+
+![win-sible banner](assets/win-sible.png)
 
 Automated local environment setup for Windows + WSL using PowerShell and Ansible.
 
@@ -8,7 +8,7 @@ This repository bootstraps a Windows development machine, configures core toolin
 
 ## Why This Project
 
-- Standardize local developer workstation setup
+- Standardise local developer workstation setup
 - Reduce manual setup steps
 - Keep Windows and WSL setup automated and reproducible
 - Separate baseline, development, and cloud-focused configuration stages
@@ -19,7 +19,7 @@ This repository bootstraps a Windows development machine, configures core toolin
   - Install Developer Applications via Winget
   - Enable OpenSSH capabilities and setup SSH keys
   - Apply Git configuration (email and username)
-  - Install Windows Subsystem for Linux (WSL).
+  - Install Windows Subsystem for Linux (WSL)
   - Use `windows/README.md` for detailed bootstrap behavior and menu-level guidance
 - Ansible-driven WSL provisioning with staged playbooks:
   - Base setup
@@ -27,6 +27,11 @@ This repository bootstraps a Windows development machine, configures core toolin
   - Cloud tooling setup
   - Use `wsl/README.md` for detailed playbook behavior and role-level guidance
 - Makefile targets for a consistent command interface
+
+## Platform Docs
+
+- Windows bootstrap details: `windows/README.md`
+- WSL Ansible details: `wsl/README.md`
 
 ## Project Structure
 
@@ -48,47 +53,48 @@ win-sible/
 │  ├─ configuration.gaming.yaml
 │  └─ README.md
 ├─ wsl/
-│  └─ ansible/
-│     ├─ group_vars/
-│     │  ├─ all.yaml
-│     │  ├─ cloud.yaml
-│     │  └─ dev.yaml
-│     ├─ inventory/
-│     │  └─ local.ini
-│     ├─ playbooks/
-│     │  ├─ roles/
-│     │  │  ├─ cloud/
-│     │  │  │  ├─ tasks/
-│     │  │  │  │  └─ main.yaml
-│     │  │  │  └─ templates/
-│     │  │  │     └─ databricks.cfg.j2
-│     │  │  ├─ common/
-│     │  │  │  └─ tasks/
-│     │  │  │     └─ main.yaml
-│     │  │  ├─ devtools/
-│     │  │  │  ├─ defaults/
-│     │  │  │  │  └─ main.yaml
-│     │  │  │  └─ tasks/
-│     │  │  │     └─ main.yaml
-│     │  │  ├─ docker/
-│     │  │  │  └─ tasks/
-│     │  │  │     └─ main.yaml
-│     │  │  ├─ git/
-│     │  │  │  └─ tasks/
-│     │  │  │     └─ main.yaml
-│     │  │  ├─ shell/
-│     │  │  │  └─ tasks/
-│     │  │  │     └─ main.yaml
-│     │  │  ├─ ssh/
-│     │  │  │  └─ tasks/
-│     │  │  │     └─ main.yaml
-│     │  │  └─ wsl/
-│     │  │     └─ tasks/
-│     │  │        └─ main.yaml
-│     │  ├─ base.yaml
-│     │  ├─ cloud.yaml
-│     │  └─ dev.yaml
-│     └─ ansible.cfg
+│  ├─ ansible/
+│  │  ├─ group_vars/
+│  │  │  ├─ all.yaml
+│  │  │  ├─ cloud.yaml
+│  │  │  └─ dev.yaml
+│  │  ├─ inventory/
+│  │  │  └─ local.ini
+│  │  ├─ playbooks/
+│  │  │  ├─ roles/
+│  │  │  │  ├─ cloud/
+│  │  │  │  │  ├─ tasks/
+│  │  │  │  │  │  └─ main.yaml
+│  │  │  │  │  └─ templates/
+│  │  │  │  │     └─ databricks.cfg.j2
+│  │  │  │  ├─ common/
+│  │  │  │  │  └─ tasks/
+│  │  │  │  │     └─ main.yaml
+│  │  │  │  ├─ devtools/
+│  │  │  │  │  ├─ defaults/
+│  │  │  │  │  │  └─ main.yaml
+│  │  │  │  │  └─ tasks/
+│  │  │  │  │     └─ main.yaml
+│  │  │  │  ├─ docker/
+│  │  │  │  │  └─ tasks/
+│  │  │  │  │     └─ main.yaml
+│  │  │  │  ├─ git/
+│  │  │  │  │  └─ tasks/
+│  │  │  │  │     └─ main.yaml
+│  │  │  │  ├─ shell/
+│  │  │  │  │  └─ tasks/
+│  │  │  │  │     └─ main.yaml
+│  │  │  │  ├─ ssh/
+│  │  │  │  │  └─ tasks/
+│  │  │  │  │     └─ main.yaml
+│  │  │  │  └─ wsl/
+│  │  │  │     └─ tasks/
+│  │  │  │        └─ main.yaml
+│  │  │  ├─ base.yaml
+│  │  │  ├─ cloud.yaml
+│  │  │  └─ dev.yaml
+│  │  └─ ansible.cfg
+│  └─ README.md
 ├─ Makefile
 └─ README.md
 
