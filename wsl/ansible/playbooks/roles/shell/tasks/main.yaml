@@ -2,7 +2,7 @@
 
 - name: Resolve shell target username
   ansible.builtin.set_fact:
-    username: "{{ username | default(wsl_default_user | default(default_user | default(ansible_user_id)), true) }}"
+    username: "{{ username | default(wsl_default_user | default(default_user | default(ansible_facts.get('user_id'))), true) }}"
 
 - name: Resolve dotfiles root path
   ansible.builtin.set_fact:
@@ -249,8 +249,7 @@
 
 # Copy starship configuration files from dotfiles
 - name: Copy starship folder from dotfiles
-  synchronize:
+  ansible.builtin.copy:
     src: "{{ dotfiles_root }}/.config/"
     dest: "/home/{{ username }}/.config/"
-    recursive: yes
   when: (install_starship_requested | default(false)) or not starship_installed.stat.exists

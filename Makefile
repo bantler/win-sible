@@ -1,7 +1,9 @@
 .PHONY: all help bootstrap wsl-dev wsl-base wsl-cloud wsl-rsync
 
-# Linux Distro to be install in WSL
-WSL_DISTRO ?= Ubuntu-24.04
+# Runtime variables for WSL distribution and user names
+# Currently only Ubuntu and Debian based distributions are supported. To see available versions run `wsl --list --online` in a Windows terminal.
+# Set WSL_DISTRO & WSL_USER before running.
+WSL_DISTRO ?= Ubuntu-26.04
 WSL_USER ?= YourWSLUserNameHere
 WINDOWS_USER ?= $(USERNAME)
 

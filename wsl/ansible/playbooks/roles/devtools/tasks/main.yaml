@@ -1,11 +1,29 @@
 - name: Resolve shell target username
   ansible.builtin.set_fact:
-    username: "{{ username | default(wsl_default_user | default(default_user | default(ansible_user_id)), true) }}"
+    username: "{{ username | default(wsl_default_user | default(default_user | default(ansible_facts.get('user_id'))), true) }}"
     
-- name: Install dev packages
-  apt:
-    name: "{{ dev_packages }}"
+- name: Probe apt availability for dev packages
+  ansible.builtin.command: "apt-cache show {{ item }}"
+  loop: "{{ dev_packages }}"
+  register: dev_packages_probe
+  changed_when: false
+  failed_when: false
+
+- name: Build installable and missing dev package lists
+  ansible.builtin.set_fact:
+    dev_packages_available: "{{ dev_packages_probe.results | selectattr('rc', 'equalto', 0) | map(attribute='item') | list }}"
+    dev_packages_missing: "{{ dev_packages_probe.results | rejectattr('rc', 'equalto', 0) | map(attribute='item') | list }}"
+
+- name: Install available dev packages
+  ansible.builtin.apt:
+    name: "{{ dev_packages_available }}"
     state: present
+  when: dev_packages_available | length > 0
+
+- name: Report missing dev packages
+  ansible.builtin.debug:
+    msg: "Skipping unavailable dev packages on this distro: {{ dev_packages_missing | join(', ') }}"
+  when: dev_packages_missing | length > 0
 
 # Detect current default shell for aliases module
 - name: Detect current default shell for aliases module
@@ -87,11 +105,26 @@
   changed_when: false
   failed_when: false
 
+- name: Ensure uv shell config dirs are writable by target user
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ username }}"
+    group: "{{ username }}"
+    mode: "0755"
+  loop:
+    - "/home/{{ username }}/.config"
+  when: uv_version.rc != 0
+
 - name: Install uv
   become_user: "{{ username }}"
-  ansible.builtin.shell: curl -LsSf https://astral.sh/uv/install.sh | sh
+  ansible.builtin.shell: curl -LsSf https://astral.sh/uv/install.sh | sh -s -- --no-modify-path
   args:
     executable: /bin/bash
+  register: uv_install
+  failed_when:
+    - uv_install.rc != 0
+    - "'everything''s installed!' not in (uv_install.stdout | default('') | lower)"
   when: uv_version.rc != 0
 
 - name: Add uv shell completion to default shell

@@ -40,7 +40,7 @@
     - name: Ensure user exists
       ansible.builtin.user:
         name: "{{ wsl_default_user }}"
-        shell: "{{ '/bin/zsh' if ansible_env.SHELL | default('/bin/bash') is search('zsh') else '/bin/bash' }}"
+        shell: "{{ '/bin/zsh' if ansible_facts.get('env', {}).get('SHELL', '/bin/bash') is search('zsh') else '/bin/bash' }}"
         create_home: true
         groups: "{{ admin_group }}"
         append: true

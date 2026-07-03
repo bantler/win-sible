@@ -1,6 +1,6 @@
 - name: Resolve shell target username
   ansible.builtin.set_fact:
-    username: "{{ username | default(wsl_default_user | default(default_user | default(ansible_user_id)), true) }}"
+    username: "{{ username | default(wsl_default_user | default(default_user | default(ansible_facts.get('user_id'))), true) }}"
 
 - name: Resolve home directory for target user
   ansible.builtin.set_fact:

@@ -1,6 +1,6 @@
 - name: Resolve shell target username
   ansible.builtin.set_fact:
-    username: "{{ username | default(wsl_default_user | default(default_user | default(ansible_user_id)), true) }}"
+    username: "{{ username | default(wsl_default_user | default(default_user | default(ansible_facts.get('user_id'))), true) }}"
 
 - name: Resolve default login shell for target user
   ansible.builtin.command: "getent passwd {{ username }}"
@@ -23,9 +23,9 @@
         windows_user
           | default(lookup('env', 'USERNAME'), true)
           | default((playbook_dir.split('/')[4] if (playbook_dir is defined and playbook_dir.startswith('/mnt/c/Users/')) else ''), true)
-          | default((ansible_env.PWD.split('/')[4] if (ansible_env.PWD is defined and ansible_env.PWD.startswith('/mnt/c/Users/')) else ''), true)
-          | default((ansible_env.SUDO_USER if (ansible_env.SUDO_USER is defined and ansible_env.SUDO_USER != 'root') else ''), true)
-          | default((ansible_env.USER if (ansible_env.USER is defined and ansible_env.USER != 'root') else ''), true)
+          | default((ansible_facts.get('env', {}).get('PWD', '').split('/')[4] if ansible_facts.get('env', {}).get('PWD', '').startswith('/mnt/c/Users/') else ''), true)
+            | default((ansible_facts.get('env', {}).get('SUDO_USER', '') if ansible_facts.get('env', {}).get('SUDO_USER', '') != 'root' else ''), true)
+            | default((ansible_facts.get('env', {}).get('USER', '') if ansible_facts.get('env', {}).get('USER', '') != 'root' else ''), true)
       }}
 
 - name: Check resolved Windows profile directory
