@@ -127,14 +127,6 @@
     - "'everything''s installed!' not in (uv_install.stdout | default('') | lower)"
   when: uv_version.rc != 0
 
-- name: Add uv shell completion to default shell
-  blockinfile:
-    path: "/home/{{ username }}/{{ aliases_shell_rc }}"
-    marker: "# {mark} ANSIBLE MANAGED UV PATH"
-    prepend_newline: yes
-    block: |
-      eval "$(uv generate-shell-completion {{ aliases_shell_name }})"
-
 - name: Configure Go env in default shell
   ansible.builtin.blockinfile:
     path: "/home/{{ username }}/{{ aliases_shell_rc }}"

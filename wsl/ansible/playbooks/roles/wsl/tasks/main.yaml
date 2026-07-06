@@ -136,4 +136,4 @@
 
       [interop]
       enabled=true
-      appendWindowsPath=false
+      appendWindowsPath=true
